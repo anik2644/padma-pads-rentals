@@ -1,0 +1,93 @@
+{
+  "common": {
+    "appName": "HomeBee",
+    "tagline": "Find Your Next Home",
+    "search": "Search",
+    "explore": "Explore",
+    "comingSoon": "Coming Soon",
+    "viewDetails": "View Details",
+    "quickCall": "Quick Call",
+    "save": "Save",
+    "viewAll": "View All",
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "retry": "Try again",
+    "reset": "Reset",
+    "apply": "Apply",
+    "filters": "Filters",
+    "advancedFilters": "Advanced Filters",
+    "login": "Log in",
+    "signup": "Sign up"
+  },
+  "nav": {
+    "home": "Home",
+    "residential": "Residential",
+    "commercial": "Commercial",
+    "recreational": "Recreational",
+    "search": "Search",
+    "saved": "Saved",
+    "messages": "Messages",
+    "profile": "Profile"
+  },
+  "home": {
+    "heroPlaceholder": "Search by area, city...",
+    "heroTitle": "Find a home that feels like yours",
+    "heroSubtitle": "Hostels, flats, sublets and more — across Bangladesh.",
+    "featuredTitle": "Featured Residential Properties",
+    "categories": {
+      "residentialTitle": "Residential",
+      "residentialSub": "Students · Bachelors · Families",
+      "residentialCta": "Explore Residential",
+      "commercialTitle": "Commercial",
+      "commercialSub": "Offices · Shops · Showrooms · Warehouses",
+      "commercialCta": "Explore Commercial",
+      "recreationalTitle": "Recreational",
+      "recreationalSub": "Hotels · Resorts · Guest Houses · Villas",
+      "recreationalCta": "Explore Hotels & Resorts"
+    },
+    "quickAccess": {
+      "saved": "Saved Listings",
+      "requests": "My Requests",
+      "messages": "Messages",
+      "notifications": "Notifications"
+    }
+  },
+  "residential": {
+    "title": "Residential Properties",
+    "subtitle": "Browse hostels, flats, sublets and apartments across Bangladesh.",
+    "types": {
+      "hostels": "Hostel/Mess",
+      "single-rooms": "Single Room",
+      "shared-rooms": "Shared Room",
+      "sublets": "Sublet",
+      "flats": "Flat",
+      "apartments": "Apartment"
+    },
+    "targetGroups": {
+      "STUDENT": "Student",
+      "BACHELOR": "Bachelor",
+      "FAMILY": "Family"
+    },
+    "fields": {
+      "division": "Division",
+      "city": "City",
+      "area": "Area",
+      "budget": "Budget Range",
+      "moveIn": "Move-in Date",
+      "bedrooms": "Bedrooms",
+      "bathrooms": "Bathrooms",
+      "furnished": "Furnished",
+      "balcony": "Balcony",
+      "lift": "Lift",
+      "parking": "Parking",
+      "wifi": "WiFi",
+      "gender": "Gender"
+    },
+    "card": {
+      "perSeat": "/seat",
+      "perMonth": "/month",
+      "availableFrom": "Available from"
+    },
+    "results": "{{count}} properties found"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "common": {
+    "appName": "হোমবি",
+    "tagline": "আপনার পরবর্তী বাড়ি খুঁজুন",
+    "search": "খুঁজুন",
+    "explore": "দেখুন",
+    "comingSoon": "শীঘ্রই আসছে",
+    "viewDetails": "বিস্তারিত দেখুন",
+    "quickCall": "কল করুন",
+    "save": "সেভ করুন",
+    "viewAll": "সব দেখুন",
+    "loading": "লোড হচ্ছে...",
+    "noResults": "কোনো ফলাফল পাওয়া যায়নি",
+    "retry": "আবার চেষ্টা করুন",
+    "reset": "রিসেট",
+    "apply": "প্রয়োগ করুন",
+    "filters": "ফিল্টার",
+    "advancedFilters": "অ্যাডভান্সড ফিল্টার",
+    "login": "লগ ইন",
+    "signup": "সাইন আপ"
+  },
+  "nav": {
+    "home": "হোম",
+    "residential": "আবাসিক",
+    "commercial": "বাণিজ্যিক",
+    "recreational": "বিনোদনমূলক",
+    "search": "খুঁজুন",
+    "saved": "সেভড",
+    "messages": "মেসেজ",
+    "profile": "প্রোফাইল"
+  },
+  "home": {
+    "heroPlaceholder": "এলাকা বা শহর দিয়ে খুঁজুন...",
+    "heroTitle": "এমন একটি বাড়ি খুঁজুন যা আপনার মনে হবে",
+    "heroSubtitle": "হোস্টেল, ফ্ল্যাট, সাবলেট — সারা বাংলাদেশে।",
+    "featuredTitle": "ফিচারড আবাসিক প্রপার্টি",
+    "categories": {
+      "residentialTitle": "আবাসিক",
+      "residentialSub": "ছাত্র · ব্যাচেলর · পরিবার",
+      "residentialCta": "আবাসিক দেখুন",
+      "commercialTitle": "বাণিজ্যিক",
+      "commercialSub": "অফিস · দোকান · শোরুম · গুদাম",
+      "commercialCta": "বাণিজ্যিক দেখুন",
+      "recreationalTitle": "বিনোদনমূলক",
+      "recreationalSub": "হোটেল · রিসোর্ট · গেস্ট হাউস · ভিলা",
+      "recreationalCta": "হোটেল ও রিসোর্ট দেখুন"
+    },
+    "quickAccess": {
+      "saved": "সেভড লিস্টিং",
+      "requests": "আমার অনুরোধ",
+      "messages": "মেসেজ",
+      "notifications": "নোটিফিকেশন"
+    }
+  },
+  "residential": {
+    "title": "আবাসিক প্রপার্টি",
+    "subtitle": "বাংলাদেশজুড়ে হোস্টেল, ফ্ল্যাট, সাবলেট ও অ্যাপার্টমেন্ট দেখুন।",
+    "types": {
+      "hostels": "হোস্টেল/মেস",
+      "single-rooms": "সিঙ্গেল রুম",
+      "shared-rooms": "শেয়ার্ড রুম",
+      "sublets": "সাবলেট",
+      "flats": "ফ্ল্যাট",
+      "apartments": "অ্যাপার্টমেন্ট"
+    },
+    "targetGroups": {
+      "STUDENT": "ছাত্র",
+      "BACHELOR": "ব্যাচেলর",
+      "FAMILY": "পরিবার"
+    },
+    "fields": {
+      "division": "বিভাগ",
+      "city": "শহর",
+      "area": "এলাকা",
+      "budget": "বাজেট রেঞ্জ",
+      "moveIn": "মুভ-ইন তারিখ",
+      "bedrooms": "বেডরুম",
+      "bathrooms": "বাথরুম",
+      "furnished": "ফার্নিশড",
+      "balcony": "বারান্দা",
+      "lift": "লিফট",
+      "parking": "পার্কিং",
+      "wifi": "ওয়াইফাই",
+      "gender": "লিঙ্গ"
+    },
+    "card": {
+      "perSeat": "/সিট",
+      "perMonth": "/মাস",
+      "availableFrom": "পাওয়া যাবে"
+    },
+    "results": "{{count}}টি প্রপার্টি পাওয়া গেছে"
+  }
+}
