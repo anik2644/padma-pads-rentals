@@ -56,7 +56,7 @@ function PropertyDetail() {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
-          {item.gallery.slice(0, 4).map((g, i) => (
+          {item.gallery.slice(0, 4).map((g: string, i: number) => (
             <button key={i} onClick={() => setActiveImg(i)} className={cn("aspect-[4/3] overflow-hidden rounded-2xl ring-2 transition", i === activeImg ? "ring-primary" : "ring-transparent hover:ring-border")}>
               <img src={g} alt="" className="h-full w-full object-cover" />
             </button>
@@ -99,7 +99,7 @@ function PropertyDetail() {
           <section>
             <h2 className="mb-3 text-lg font-semibold">Amenities</h2>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {item.amenities.map((a) => (
+              {item.amenities.map((a: string) => (
                 <div key={a} className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm">
                   <CheckCircle2 className="h-4 w-4 text-success" /> {a}
                 </div>
@@ -110,7 +110,7 @@ function PropertyDetail() {
           <section>
             <h2 className="mb-3 text-lg font-semibold">House rules</h2>
             <ul className="space-y-1.5 text-sm text-muted-foreground">
-              {item.rules.map((r) => <li key={r}>• {r}</li>)}
+              {item.rules.map((r: string) => <li key={r}>• {r}</li>)}
             </ul>
           </section>
 
@@ -130,7 +130,7 @@ function PropertyDetail() {
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12"><AvatarFallback>{item.owner.name.split(" ").map(p=>p[0]).join("")}</AvatarFallback></Avatar>
+              <Avatar className="h-12 w-12"><AvatarFallback>{item.owner.name.split(" ").map((p: string) => p[0]).join("")}</AvatarFallback></Avatar>
               <div>
                 <p className="font-semibold flex items-center gap-1.5">
                   {item.owner.name}

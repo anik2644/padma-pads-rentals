@@ -9,13 +9,49 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SavedRouteImport } from './routes/saved'
 import { Route as ResidentialRouteImport } from './routes/residential'
+import { Route as RecreationalRouteImport } from './routes/recreational'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as CommercialRouteImport } from './routes/commercial'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ResidentialTypeIdRouteImport } from './routes/residential.$type.$id'
 
+const SavedRoute = SavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResidentialRoute = ResidentialRouteImport.update({
   id: '/residential',
   path: '/residential',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecreationalRoute = RecreationalRouteImport.update({
+  id: '/recreational',
+  path: '/recreational',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommercialRoute = CommercialRouteImport.update({
+  id: '/commercial',
+  path: '/commercial',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,40 +67,134 @@ const ResidentialTypeIdRoute = ResidentialTypeIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/commercial': typeof CommercialRoute
+  '/messages': typeof MessagesRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
+  '/recreational': typeof RecreationalRoute
   '/residential': typeof ResidentialRouteWithChildren
+  '/saved': typeof SavedRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/commercial': typeof CommercialRoute
+  '/messages': typeof MessagesRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
+  '/recreational': typeof RecreationalRoute
   '/residential': typeof ResidentialRouteWithChildren
+  '/saved': typeof SavedRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/commercial': typeof CommercialRoute
+  '/messages': typeof MessagesRoute
+  '/notifications': typeof NotificationsRoute
+  '/profile': typeof ProfileRoute
+  '/recreational': typeof RecreationalRoute
   '/residential': typeof ResidentialRouteWithChildren
+  '/saved': typeof SavedRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/residential' | '/residential/$type/$id'
+  fullPaths:
+    | '/'
+    | '/commercial'
+    | '/messages'
+    | '/notifications'
+    | '/profile'
+    | '/recreational'
+    | '/residential'
+    | '/saved'
+    | '/residential/$type/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/residential' | '/residential/$type/$id'
-  id: '__root__' | '/' | '/residential' | '/residential/$type/$id'
+  to:
+    | '/'
+    | '/commercial'
+    | '/messages'
+    | '/notifications'
+    | '/profile'
+    | '/recreational'
+    | '/residential'
+    | '/saved'
+    | '/residential/$type/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/commercial'
+    | '/messages'
+    | '/notifications'
+    | '/profile'
+    | '/recreational'
+    | '/residential'
+    | '/saved'
+    | '/residential/$type/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CommercialRoute: typeof CommercialRoute
+  MessagesRoute: typeof MessagesRoute
+  NotificationsRoute: typeof NotificationsRoute
+  ProfileRoute: typeof ProfileRoute
+  RecreationalRoute: typeof RecreationalRoute
   ResidentialRoute: typeof ResidentialRouteWithChildren
+  SavedRoute: typeof SavedRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/saved': {
+      id: '/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/residential': {
       id: '/residential'
       path: '/residential'
       fullPath: '/residential'
       preLoaderRoute: typeof ResidentialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recreational': {
+      id: '/recreational'
+      path: '/recreational'
+      fullPath: '/recreational'
+      preLoaderRoute: typeof RecreationalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/commercial': {
+      id: '/commercial'
+      path: '/commercial'
+      fullPath: '/commercial'
+      preLoaderRoute: typeof CommercialRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -98,7 +228,13 @@ const ResidentialRouteWithChildren = ResidentialRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CommercialRoute: CommercialRoute,
+  MessagesRoute: MessagesRoute,
+  NotificationsRoute: NotificationsRoute,
+  ProfileRoute: ProfileRoute,
+  RecreationalRoute: RecreationalRoute,
   ResidentialRoute: ResidentialRouteWithChildren,
+  SavedRoute: SavedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
