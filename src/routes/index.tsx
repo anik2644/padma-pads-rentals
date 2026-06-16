@@ -45,7 +45,7 @@ function HomePage() {
 function Hero() {
   const { t } = useTranslation();
   return (
-    <section className="relative flex min-h-[68vh] flex-col justify-center overflow-hidden">
+    <section className="relative min-h-[85vh] overflow-hidden">
       {/* Background image — first in DOM so it sits beneath overlay and content */}
       <img
         src="/assets/images/img.png"
@@ -59,7 +59,7 @@ function Hero() {
       <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
 
       {/* Content sits above the absolute bg layers */}
-      <div className="relative mx-auto w-full max-w-5xl px-4 py-20 text-center md:px-6 md:py-28">
+      <div className="relative mx-auto w-full max-w-5xl px-4 pb-16 pt-28 text-center md:px-6 md:pb-24 md:pt-44">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
