@@ -38,6 +38,7 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
             HomeBee
           </div>
         )}
+        {/* Heart — fixed top-right; must be before badges so z-index stacks correctly */}
         <button
           type="button"
           onClick={(e) => {
@@ -45,7 +46,7 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
             setSaved((s) => !s);
           }}
           aria-label={t("common.save")}
-          className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-transform hover:scale-110"
+          className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-transform hover:scale-110"
         >
           <Heart
             className={cn(
@@ -54,7 +55,9 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
             )}
           />
         </button>
-        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+
+        {/* Badges — capped so they never overlap the heart button */}
+        <div className="absolute left-3 top-3 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1.5">
           <Badge className={cn("border-0 capitalize", TYPE_COLOR[item.type])}>
             {t(`residential.types.${item.type}`)}
           </Badge>
@@ -66,28 +69,28 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-4">
+      <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
         <div>
           <h3 className="line-clamp-1 font-semibold text-foreground">{item.name}</h3>
           <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" />
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
             <span className="line-clamp-1">
               {[item.area, item.city].filter(Boolean).join(", ") || "—"}
             </span>
           </p>
         </div>
 
-        <div className="flex items-baseline justify-between">
-          <div>
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="min-w-0">
             <span className="text-lg font-bold text-primary">{formatBDT(item.rent)}</span>
             <span className="text-xs text-muted-foreground">
               {t(`residential.card.${item.rentLabel}`)}
             </span>
           </div>
           {item.availableFrom && (
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <CalendarDays className="h-3 w-3" />
-              {formatDate(item.availableFrom, lang)}
+            <p className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+              <CalendarDays className="h-3 w-3 shrink-0" />
+              <span className="whitespace-nowrap">{formatDate(item.availableFrom, lang)}</span>
             </p>
           )}
         </div>
@@ -101,9 +104,8 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
               {t("common.viewDetails")}
             </Link>
           </Button>
-          <Button size="sm" variant="outline" className="gap-1">
+          <Button size="sm" variant="outline" aria-label={t("common.quickCall")} className="shrink-0 px-3">
             <Phone className="h-3.5 w-3.5" />
-            {t("common.quickCall")}
           </Button>
         </div>
       </div>

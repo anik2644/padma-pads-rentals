@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#7c2d12"/>
+    </linearGradient>
+    <linearGradient id="dim" x1="0" y1="0.4" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.68"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <circle cx="180" cy="160" r="350" fill="white" opacity="0.06"/>
+  <circle cx="1050" cy="720" r="290" fill="white" opacity="0.06"/>
+  <!-- Multi-floor flat building -->
+  <g fill="white" opacity="0.18" transform="translate(600,450)">
+    <!-- Main block -->
+    <rect x="-220" y="-320" width="440" height="430" rx="5"/>
+    <!-- Roof ledge -->
+    <rect x="-235" y="-335" width="470" height="20" rx="5" opacity="0.6"/>
+    <!-- Floor 3 windows -->
+    <rect x="-175" y="-280" width="80" height="65" opacity="0.6"/>
+    <rect x="-60"  y="-280" width="80" height="65" opacity="0.6"/>
+    <rect x="55"   y="-280" width="80" height="65" opacity="0.6"/>
+    <!-- Floor 2 windows -->
+    <rect x="-175" y="-185" width="80" height="65" opacity="0.6"/>
+    <rect x="-60"  y="-185" width="80" height="65" opacity="0.6"/>
+    <rect x="55"   y="-185" width="80" height="65" opacity="0.6"/>
+    <!-- Floor 1 windows -->
+    <rect x="-175" y="-90" width="80" height="65" opacity="0.6"/>
+    <rect x="55"   y="-90" width="80" height="65" opacity="0.6"/>
+    <!-- Door -->
+    <rect x="-45" y="30" width="90" height="80"/>
+    <!-- Balconies -->
+    <rect x="-180" y="-95" width="90" height="8" opacity="0.4"/>
+    <rect x="50"   y="-95" width="90" height="8" opacity="0.4"/>
+  </g>
+  <rect width="1200" height="900" fill="url(#dim)"/>
+  <text x="80" y="814" fill="white" font-family="Inter,ui-sans-serif,sans-serif" font-size="60" font-weight="700" opacity="0.95">Flat</text>
+  <text x="80" y="878" fill="white" font-family="Inter,ui-sans-serif,sans-serif" font-size="38" opacity="0.7">Residential · Family &amp; Bachelor</text>
+</svg>

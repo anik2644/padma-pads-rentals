@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4ade80"/>
+      <stop offset="100%" stop-color="#14532d"/>
+    </linearGradient>
+    <linearGradient id="dim" x1="0" y1="0.4" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.68"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <circle cx="200" cy="180" r="350" fill="white" opacity="0.06"/>
+  <circle cx="1010" cy="710" r="300" fill="white" opacity="0.06"/>
+  <!-- Cosy cottage / guesthouse -->
+  <g fill="white" opacity="0.18" transform="translate(600,460)">
+    <!-- Main body -->
+    <rect x="-230" y="-180" width="460" height="280" rx="8"/>
+    <!-- Steep pitched roof -->
+    <polygon points="-260,-180 0,-360 260,-180" opacity="0.85"/>
+    <!-- Roof overhang lines -->
+    <polygon points="-275,-175 0,-370 275,-175 265,-180 0,-355 -265,-180" fill="none" stroke="white" stroke-width="10" opacity="0.3"/>
+    <!-- Front porch / veranda -->
+    <rect x="-200" y="90"  width="400" height="16" rx="4" opacity="0.5"/>
+    <rect x="-195" y="-30" width="10" height="120" opacity="0.4"/>
+    <rect x="-100" y="-30" width="10" height="120" opacity="0.4"/>
+    <rect x="90"   y="-30" width="10" height="120" opacity="0.4"/>
+    <rect x="185"  y="-30" width="10" height="120" opacity="0.4"/>
+    <!-- Windows -->
+    <rect x="-190" y="-130" width="90" height="80" opacity="0.6" rx="4"/>
+    <rect x="100"  y="-130" width="90" height="80" opacity="0.6" rx="4"/>
+    <!-- Arched window centre -->
+    <rect x="-35"  y="-260" width="70" height="65" rx="35" opacity="0.5"/>
+    <!-- Door -->
+    <rect x="-40"  y="15"   width="80" height="75" rx="4"/>
+    <!-- Chimney -->
+    <rect x="100"  y="-390" width="42" height="140" opacity="0.7"/>
+    <rect x="92"   y="-400" width="58" height="18"  rx="4" opacity="0.8"/>
+    <!-- Smoke puffs -->
+    <circle cx="123" cy="-420" r="18" opacity="0.25"/>
+    <circle cx="135" cy="-448" r="14" opacity="0.18"/>
+    <!-- Garden fence -->
+    <rect x="-280" y="108" width="560" height="10" rx="4" opacity="0.3"/>
+    <rect x="-270" y="90" width="10" height="30" rx="3" opacity="0.3"/>
+    <rect x="-230" y="90" width="10" height="30" rx="3" opacity="0.3"/>
+    <rect x="-190" y="90" width="10" height="30" rx="3" opacity="0.3"/>
+    <rect x="180"  y="90" width="10" height="30" rx="3" opacity="0.3"/>
+    <rect x="220"  y="90" width="10" height="30" rx="3" opacity="0.3"/>
+    <rect x="260"  y="90" width="10" height="30" rx="3" opacity="0.3"/>
+    <!-- Trees -->
+    <circle cx="-340" cy="-60" r="55" opacity="0.22"/>
+    <circle cx="-330" cy="-100" r="42" opacity="0.2"/>
+    <rect x="-346" y="-10" width="12" height="80" rx="4" opacity="0.25"/>
+    <circle cx="350" cy="-70" r="50" opacity="0.22"/>
+    <circle cx="345" cy="-108" r="38" opacity="0.2"/>
+    <rect x="340" y="-20" width="12" height="80" rx="4" opacity="0.25"/>
+  </g>
+  <rect width="1200" height="900" fill="url(#dim)"/>
+  <text x="80" y="814" fill="white" font-family="Inter,ui-sans-serif,sans-serif" font-size="60" font-weight="700" opacity="0.95">Guest House / Cottage</text>
+  <text x="80" y="878" fill="white" font-family="Inter,ui-sans-serif,sans-serif" font-size="38" opacity="0.7">Recreational · Cosy Stay</text>
+</svg>

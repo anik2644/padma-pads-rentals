@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Star, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,14 @@ const LABEL: Record<RecreationalType, string> = {
 };
 
 function RecreationalPage() {
+  const matchRoute = useMatchRoute();
   const [active, setActive] = useState<RecreationalType | "all">("all");
   const [q, setQ] = useState("");
   const items = useMemo(() => MOCK_RECREATIONAL
     .filter((p) => active === "all" || p.type === active)
     .filter((p) => !q || (p.name + p.city).toLowerCase().includes(q.toLowerCase())), [active, q]);
+
+  if (matchRoute({ to: "/recreational/$id" })) return <Outlet />;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-10">
@@ -69,7 +72,9 @@ function RecreationalPage() {
               <div className="flex items-center justify-between pt-1">
                 <span className="text-lg font-bold text-primary">{formatBDT(p.pricePerNight)}<span className="text-xs text-muted-foreground">/night</span></span>
                 <div className="flex gap-2">
-                  <Button size="sm" asChild><Link to="/recreational">Book</Link></Button>
+                  <Button size="sm" asChild>
+                    <Link to="/recreational/$id" params={{ id: p.id }}>View Details</Link>
+                  </Button>
                   <Button size="sm" variant="outline" className="gap-1"><Phone className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>

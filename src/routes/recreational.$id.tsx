@@ -1,0 +1,275 @@
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  ArrowLeft, MapPin, Star, Phone, MessageCircle,
+  Heart, Share2, Shield, CheckCircle2, CalendarDays,
+  Users, BedDouble, Maximize2, Waves, Utensils, Dumbbell,
+  PlaneTakeoff, Car, WashingMachine,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { getRecreationalDetail } from "@/lib/mock-data";
+import { formatBDT } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/recreational/$id")({
+  head: () => ({ meta: [{ title: "Hotel & Resort Details — HomeBee" }] }),
+  component: RecreationalDetail,
+  loader: ({ params }) => {
+    const detail = getRecreationalDetail(params.id);
+    if (!detail) throw notFound();
+    return detail;
+  },
+  notFoundComponent: () => (
+    <div className="mx-auto max-w-md py-24 text-center">
+      <h1 className="text-2xl font-bold">Property not found</h1>
+      <Button asChild className="mt-4">
+        <Link to="/recreational">Back to browse</Link>
+      </Button>
+    </div>
+  ),
+});
+
+const TYPE_LABEL: Record<string, string> = {
+  hotels: "Hotel",
+  resorts: "Resort",
+  guesthouses: "Guest House",
+  villas: "Villa",
+};
+
+const FACILITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "Swimming Pool": Waves,
+  "Restaurant": Utensils,
+  "Gym": Dumbbell,
+  "Airport Pickup": PlaneTakeoff,
+  "Car Rental": Car,
+  "Laundry": WashingMachine,
+};
+
+function RecreationalDetail() {
+  const item = Route.useLoaderData();
+  const [saved, setSaved] = useState(false);
+  const [activeImg, setActiveImg] = useState(0);
+
+  return (
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
+      <Link
+        to="/recreational"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" /> Back to hotels & resorts
+      </Link>
+
+      {/* Gallery */}
+      <div className="grid gap-3 md:grid-cols-4">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-muted md:col-span-3">
+          <img src={item.gallery[activeImg]} alt={item.name} className="h-full w-full object-cover" />
+          <div className="absolute right-3 top-3 flex gap-2">
+            <button
+              onClick={() => setSaved((s) => !s)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur transition hover:scale-105"
+              aria-label="Save"
+            >
+              <Heart className={cn("h-4 w-4", saved ? "fill-primary text-primary" : "")} />
+            </button>
+            <button
+              onClick={() => toast.success("Link copied")}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur transition hover:scale-105"
+              aria-label="Share"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="absolute left-3 bottom-3 flex items-center gap-2">
+            <Badge className="gap-1 border-0 bg-background/90 text-foreground backdrop-blur">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {item.rating}
+            </Badge>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
+          {item.gallery.slice(0, 4).map((g: string, i: number) => (
+            <button
+              key={i}
+              onClick={() => setActiveImg(i)}
+              className={cn(
+                "aspect-[4/3] overflow-hidden rounded-2xl ring-2 transition",
+                i === activeImg ? "ring-primary" : "ring-transparent hover:ring-border",
+              )}
+            >
+              <img src={g} alt="" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        {/* Main content */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Title */}
+          <div>
+            <Badge className="mb-2 capitalize">{TYPE_LABEL[item.type] ?? item.type}</Badge>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{item.name}</h1>
+            <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+              <MapPin className="h-4 w-4" /> {item.city}, {item.division}
+            </p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5" />
+              Check-in: <span className="font-medium text-foreground">{item.checkIn}</span>
+              &nbsp;·&nbsp; Check-out: <span className="font-medium text-foreground">{item.checkOut}</span>
+            </p>
+          </div>
+
+          {/* Description */}
+          <section>
+            <h2 className="mb-2 text-lg font-semibold">About this property</h2>
+            <p className="leading-relaxed text-muted-foreground">{item.description}</p>
+          </section>
+
+          {/* Facilities */}
+          {item.facilities.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Property Facilities</h2>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {item.facilities.map((f: string) => {
+                  const Icon = FACILITY_ICONS[f] ?? CheckCircle2;
+                  return (
+                    <div
+                      key={f}
+                      className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+                    >
+                      <Icon className="h-4 w-4 text-primary" /> {f}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Services */}
+          {item.services.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold">Services</h2>
+              <div className="flex flex-wrap gap-2">
+                {item.services.map((s: string) => (
+                  <Badge key={s} variant="outline" className="gap-1 px-3 py-1.5 text-xs">
+                    <CheckCircle2 className="h-3 w-3 text-success" /> {s}
+                  </Badge>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Room Types */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Room Types</h2>
+            <div className="space-y-3">
+              {item.rooms.map((room: { type: string; available: number; price: number; occupancy: number; bedType: string; sizeSqft: number }) => (
+                <div
+                  key={room.type}
+                  className="rounded-2xl border border-border bg-card p-4 shadow-card"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold">{room.type}</h3>
+                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {room.bedType}</span>
+                        <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Up to {room.occupancy} guests</span>
+                        <span className="flex items-center gap-1"><Maximize2 className="h-3.5 w-3.5" /> {room.sizeSqft} sqft</span>
+                      </div>
+                      <p className="mt-1 text-xs text-success">{room.available} rooms available</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-primary">{formatBDT(room.price)}</p>
+                      <p className="text-xs text-muted-foreground">/night</p>
+                      <Button
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => toast.success(`Booking ${room.type}...`)}
+                      >
+                        Book Now
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Rules */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Rules & Policies</h2>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>• Pets allowed: <span className="text-foreground font-medium">{item.rules.petsAllowed ? "Yes" : "No"}</span></p>
+              <p>• Smoking allowed: <span className="text-foreground font-medium">{item.rules.smokingAllowed ? "Yes" : "No"}</span></p>
+              <p>• Outside food: <span className="text-foreground font-medium">{item.rules.outsideFoodAllowed ? "Allowed" : "Not allowed"}</span></p>
+              <p>• Cancellation: <span className="text-foreground font-medium">{item.rules.cancellationPolicy}</span></p>
+              <p>• Refund: <span className="text-foreground font-medium">{item.rules.refundPolicy}</span></p>
+            </div>
+          </section>
+
+          {/* Map */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Location</h2>
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-border">
+              <iframe
+                title="map"
+                className="h-full w-full"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${item.location.lng - 0.05},${item.location.lat - 0.05},${item.location.lng + 0.05},${item.location.lat + 0.05}&layer=mapnik&marker=${item.location.lat},${item.location.lng}`}
+              />
+            </div>
+          </section>
+        </div>
+
+        {/* Sidebar */}
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">Starting from</p>
+              <p className="text-3xl font-bold text-primary">{formatBDT(item.pricePerNight)}</p>
+              <p className="text-sm text-muted-foreground">/night</p>
+              <div className="mt-2 flex items-center justify-center gap-1">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <span className="font-semibold">{item.rating}</span>
+                <span className="text-xs text-muted-foreground">rating</span>
+              </div>
+            </div>
+            <Separator className="my-4" />
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback>{item.contact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="flex items-center gap-1.5 text-sm font-semibold">
+                  {item.contact.name}
+                  {item.contact.verified && <Shield className="h-3.5 w-3.5 text-secondary" />}
+                </p>
+                <p className="text-xs text-muted-foreground">{item.contact.email}</p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <Button className="w-full gap-2" onClick={() => toast.success("Proceeding to booking...")}>
+                Book Now
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => toast.success("Calling property...")}
+              >
+                <Phone className="h-4 w-4" /> {item.contact.phone}
+              </Button>
+              <Button variant="outline" className="w-full gap-2" onClick={() => toast("Opening chat...")}>
+                <MessageCircle className="h-4 w-4" /> Message
+              </Button>
+            </div>
+            <p className="mt-4 text-center text-[11px] text-muted-foreground">
+              Free cancellation up to 48 hours before check-in.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#431407"/>
+    </linearGradient>
+    <linearGradient id="dim" x1="0" y1="0.4" x2="0" y2="1">
+      <stop offset="0%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.68"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="900" fill="url(#bg)"/>
+  <circle cx="200" cy="180" r="370" fill="white" opacity="0.06"/>
+  <circle cx="1000" cy="720" r="310" fill="white" opacity="0.06"/>
+  <!-- Tall apartment tower -->
+  <g fill="white" opacity="0.18" transform="translate(600,450)">
+    <!-- Central tower -->
+    <rect x="-130" y="-420" width="260" height="530" rx="6"/>
+    <!-- Side wings (lower) -->
+    <rect x="-300" y="-240" width="175" height="350" rx="4"/>
+    <rect x="125"  y="-240" width="175" height="350" rx="4"/>
+    <!-- Tower windows (4 floors) -->
+    <rect x="-90" y="-380" width="55" height="55" opacity="0.6"/>
+    <rect x="-15" y="-380" width="55" height="55" opacity="0.6"/>
+    <rect x="-90" y="-300" width="55" height="55" opacity="0.6"/>
+    <rect x="-15" y="-300" width="55" height="55" opacity="0.6"/>
+    <rect x="-90" y="-220" width="55" height="55" opacity="0.6"/>
+    <rect x="-15" y="-220" width="55" height="55" opacity="0.6"/>
+    <rect x="-90" y="-140" width="55" height="55" opacity="0.6"/>
+    <rect x="-15" y="-140" width="55" height="55" opacity="0.6"/>
+    <!-- Wing windows -->
+    <rect x="-265" y="-200" width="50" height="50" opacity="0.6"/>
+    <rect x="-195" y="-200" width="50" height="50" opacity="0.6"/>
+    <rect x="-265" y="-125" width="50" height="50" opacity="0.6"/>
+    <rect x="-195" y="-125" width="50" height="50" opacity="0.6"/>
+    <rect x="145"  y="-200" width="50" height="50" opacity="0.6"/>
+    <rect x="215"  y="-200" width="50" height="50" opacity="0.6"/>
+    <rect x="145"  y="-125" width="50" height="50" opacity="0.6"/>
+    <rect x="215"  y="-125" width="50" height="50" opacity="0.6"/>
+    <!-- Main entrance -->
+    <rect x="-55" y="30" width="110" height="80"/>
+    <!-- Canopy -->
+    <rect x="-90" y="22" width="180" height="14" rx="4" opacity="0.6"/>
+  </g>
+  <rect width="1200" height="900" fill="url(#dim)"/>
+  <text x="80" y="814" fill="white" font-family="Inter,ui-sans-serif,sans-serif" font-size="60" font-weight="700" opacity="0.95">Apartment</text>
+  <text x="80" y="878" fill="white" font-family="Inter,ui-sans-serif,sans-serif" font-size="38" opacity="0.7">Residential · Family</text>
+</svg>

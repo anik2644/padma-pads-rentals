@@ -20,6 +20,8 @@ import { Route as CommercialRouteImport } from './routes/commercial'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as RecreationalIdRouteImport } from './routes/recreational.$id'
+import { Route as CommercialIdRouteImport } from './routes/commercial.$id'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
@@ -80,6 +82,16 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthRoute,
 } as any)
+const RecreationalIdRoute = RecreationalIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => RecreationalRoute,
+} as any)
+const CommercialIdRoute = CommercialIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => CommercialRoute,
+} as any)
 const AuthSignupRoute = AuthSignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -104,33 +116,37 @@ const ResidentialTypeIdRoute = ResidentialTypeIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/commercial': typeof CommercialRoute
+  '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/recreational': typeof RecreationalRoute
+  '/recreational': typeof RecreationalRouteWithChildren
   '/residential': typeof ResidentialRouteWithChildren
   '/saved': typeof SavedRoute
   '/settings': typeof SettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/commercial/$id': typeof CommercialIdRoute
+  '/recreational/$id': typeof RecreationalIdRoute
   '/auth/': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/commercial': typeof CommercialRoute
+  '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/recreational': typeof RecreationalRoute
+  '/recreational': typeof RecreationalRouteWithChildren
   '/residential': typeof ResidentialRouteWithChildren
   '/saved': typeof SavedRoute
   '/settings': typeof SettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/commercial/$id': typeof CommercialIdRoute
+  '/recreational/$id': typeof RecreationalIdRoute
   '/auth': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
@@ -138,17 +154,19 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/commercial': typeof CommercialRoute
+  '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
-  '/recreational': typeof RecreationalRoute
+  '/recreational': typeof RecreationalRouteWithChildren
   '/residential': typeof ResidentialRouteWithChildren
   '/saved': typeof SavedRoute
   '/settings': typeof SettingsRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/commercial/$id': typeof CommercialIdRoute
+  '/recreational/$id': typeof RecreationalIdRoute
   '/auth/': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
@@ -168,6 +186,8 @@ export interface FileRouteTypes {
     | '/auth/forgot'
     | '/auth/login'
     | '/auth/signup'
+    | '/commercial/$id'
+    | '/recreational/$id'
     | '/auth/'
     | '/residential/$type/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -184,6 +204,8 @@ export interface FileRouteTypes {
     | '/auth/forgot'
     | '/auth/login'
     | '/auth/signup'
+    | '/commercial/$id'
+    | '/recreational/$id'
     | '/auth'
     | '/residential/$type/$id'
   id:
@@ -201,6 +223,8 @@ export interface FileRouteTypes {
     | '/auth/forgot'
     | '/auth/login'
     | '/auth/signup'
+    | '/commercial/$id'
+    | '/recreational/$id'
     | '/auth/'
     | '/residential/$type/$id'
   fileRoutesById: FileRoutesById
@@ -208,11 +232,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
-  CommercialRoute: typeof CommercialRoute
+  CommercialRoute: typeof CommercialRouteWithChildren
   MessagesRoute: typeof MessagesRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
-  RecreationalRoute: typeof RecreationalRoute
+  RecreationalRoute: typeof RecreationalRouteWithChildren
   ResidentialRoute: typeof ResidentialRouteWithChildren
   SavedRoute: typeof SavedRoute
   SettingsRoute: typeof SettingsRoute
@@ -297,6 +321,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/recreational/$id': {
+      id: '/recreational/$id'
+      path: '/$id'
+      fullPath: '/recreational/$id'
+      preLoaderRoute: typeof RecreationalIdRouteImport
+      parentRoute: typeof RecreationalRoute
+    }
+    '/commercial/$id': {
+      id: '/commercial/$id'
+      path: '/$id'
+      fullPath: '/commercial/$id'
+      preLoaderRoute: typeof CommercialIdRouteImport
+      parentRoute: typeof CommercialRoute
+    }
     '/auth/signup': {
       id: '/auth/signup'
       path: '/signup'
@@ -344,6 +382,30 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface CommercialRouteChildren {
+  CommercialIdRoute: typeof CommercialIdRoute
+}
+
+const CommercialRouteChildren: CommercialRouteChildren = {
+  CommercialIdRoute: CommercialIdRoute,
+}
+
+const CommercialRouteWithChildren = CommercialRoute._addFileChildren(
+  CommercialRouteChildren,
+)
+
+interface RecreationalRouteChildren {
+  RecreationalIdRoute: typeof RecreationalIdRoute
+}
+
+const RecreationalRouteChildren: RecreationalRouteChildren = {
+  RecreationalIdRoute: RecreationalIdRoute,
+}
+
+const RecreationalRouteWithChildren = RecreationalRoute._addFileChildren(
+  RecreationalRouteChildren,
+)
+
 interface ResidentialRouteChildren {
   ResidentialTypeIdRoute: typeof ResidentialTypeIdRoute
 }
@@ -359,11 +421,11 @@ const ResidentialRouteWithChildren = ResidentialRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
-  CommercialRoute: CommercialRoute,
+  CommercialRoute: CommercialRouteWithChildren,
   MessagesRoute: MessagesRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
-  RecreationalRoute: RecreationalRoute,
+  RecreationalRoute: RecreationalRouteWithChildren,
   ResidentialRoute: ResidentialRouteWithChildren,
   SavedRoute: SavedRoute,
   SettingsRoute: SettingsRoute,
@@ -371,3 +433,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

@@ -45,12 +45,21 @@ function HomePage() {
 function Hero() {
   const { t } = useTranslation();
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -right-24 top-24 h-96 w-96 rounded-full bg-secondary/20 blur-3xl" />
-      </div>
-      <div className="mx-auto max-w-5xl px-4 py-16 text-center md:px-6 md:py-24">
+    <section className="relative flex min-h-[68vh] flex-col justify-center overflow-hidden">
+      {/* Background image — first in DOM so it sits beneath overlay and content */}
+      <img
+        src="/assets/images/img.png"
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full object-cover object-[center_22%]"
+      />
+      {/* Semi-transparent overlay for text legibility */}
+      <div className="absolute inset-0 bg-background/75" />
+      {/* Bottom fade into the page */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent" />
+
+      {/* Content sits above the absolute bg layers */}
+      <div className="relative mx-auto w-full max-w-5xl px-4 py-20 text-center md:px-6 md:py-28">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -151,7 +160,7 @@ function Categories() {
                 <Button
                   asChild
                   variant="secondary"
-                  className="rounded-full bg-white text-foreground hover:bg-white/90"
+                  className="rounded-full bg-white text-gray-900 hover:bg-white/90"
                 >
                   <Link to={c.to}>
                     {c.cta}

@@ -1,30 +1,22 @@
 import type { PropertyListItem, ResidentialType, TargetGroup } from "@/lib/residential";
+import {
+  RESIDENTIAL_ASSET_IMAGES,
+  RESIDENTIAL_IMAGE_BY_TYPE,
+  COMMERCIAL_ASSET_IMAGES,
+  COMMERCIAL_IMAGE_BY_TYPE,
+  RECREATIONAL_ASSET_IMAGES,
+  RECREATIONAL_IMAGE_BY_TYPE,
+} from "@/assets/images";
 
-const IMG = (q: string, seed: number) =>
-  `https://images.unsplash.com/photo-${q}?auto=format&fit=crop&w=1200&q=80&ixid=${seed}`;
+// Pick a local asset image, cycling through the array when there are more items than images.
+const photo = (type: ResidentialType, i: number): string =>
+  RESIDENTIAL_IMAGE_BY_TYPE[type] ?? RESIDENTIAL_ASSET_IMAGES[i % RESIDENTIAL_ASSET_IMAGES.length];
 
-const PHOTOS = [
-  "1568605114967-8130f3a36994",
-  "1502672260266-1c1ef2d93688",
-  "1505691938895-1758d7feb511",
-  "1493809842364-78817add7ffb",
-  "1522708323590-d24dbb6b0267",
-  "1560448204-e02f11c3d0e2",
-  "1600585154340-be6161a56a0c",
-  "1600596542815-ffad4c1539a9",
-  "1600607687939-ce8a6c25118c",
-  "1556909114-f6e7ad7d3136",
-  "1560185007-cde436f6a4d0",
-  "1554995207-c18c203602cb",
-  "1582268611958-ebfd161ef9cf",
-  "1598928506311-c55ded91a20c",
-  "1484154218962-a197022b5858",
-  "1513694203232-719a280e022f",
-  "1560448204-603b3fc33ddc",
-  "1502005229762-cf1b2da7c5d6",
-];
+const commercialPhoto = (type: string, i: number): string =>
+  COMMERCIAL_IMAGE_BY_TYPE[type] ?? COMMERCIAL_ASSET_IMAGES[i % COMMERCIAL_ASSET_IMAGES.length];
 
-const photo = (i: number) => IMG(PHOTOS[i % PHOTOS.length], i);
+const recreationalPhoto = (type: string, i: number): string =>
+  RECREATIONAL_IMAGE_BY_TYPE[type] ?? RECREATIONAL_ASSET_IMAGES[i % RECREATIONAL_ASSET_IMAGES.length];
 
 const DHAKA_AREAS = ["Dhanmondi", "Gulshan", "Banani", "Mirpur", "Uttara", "Mohammadpur", "Bashundhara", "Tejgaon", "Wari"];
 const CTG_AREAS = ["Agrabad", "Halishahar", "Khulshi", "Nasirabad", "GEC Circle"];
@@ -81,7 +73,7 @@ function buildResidential(type: ResidentialType, count: number): PropertyListIte
       rent,
       rentLabel: type === "hostels" || type === "shared-rooms" ? "perSeat" : "perMonth",
       availableFrom: d.toISOString(),
-      coverImage: photo(i + type.length * 3),
+      coverImage: photo(type, i),
       targetGroups: groups,
       createdAt: new Date(Date.now() - i * 86400000).toISOString(),
       negotiable: r() > 0.6,
@@ -138,7 +130,7 @@ export const MOCK_COMMERCIAL: CommercialItem[] = COMMERCIAL_TYPES.flatMap((type,
       division,
       rent: Math.round((lo + r() * (hi - lo)) / 1000) * 1000,
       sizeSqft: 400 + Math.floor(r() * 4500),
-      coverImage: photo(i + ti * 4 + 6),
+      coverImage: commercialPhoto(type, i),
       features: ["Parking", "24/7 Security", "Lift", "Generator"].slice(0, 2 + (i % 3)),
       createdAt: new Date(Date.now() - i * 86400000).toISOString(),
     };
@@ -182,7 +174,7 @@ export const MOCK_RECREATIONAL: RecreationalItem[] = RECREATIONAL_TYPES.flatMap(
       division: city === "Cox's Bazar" ? "Chattogram" : "Sylhet",
       pricePerNight: Math.round((lo + r() * (hi - lo)) / 500) * 500,
       rating: Math.round((3.8 + r() * 1.2) * 10) / 10,
-      coverImage: photo(i + ti * 5 + 10),
+      coverImage: recreationalPhoto(type, i),
       amenities: ["WiFi", "Pool", "Breakfast", "AC", "Parking", "Spa"].slice(0, 3 + (i % 3)),
     };
   });
@@ -195,7 +187,7 @@ export function getResidentialDetail(type: ResidentialType, id: string) {
   const seedFn = rand(id.length * 19);
   return {
     ...item,
-    gallery: Array.from({ length: 6 }, (_, i) => photo(i + type.length * 2 + 3)),
+    gallery: Array.from({ length: 6 }, (_, i) => photo(type, i)),
     description:
       "A bright, well-ventilated property in a quiet, safe neighbourhood. Walking distance to grocery, pharmacy, and public transport. Newly painted, professionally cleaned, and ready to move in. Owner is friendly and responsive — viewings welcome on short notice.",
     bedrooms: type === "flats" || type === "apartments" ? 2 + Math.floor(seedFn() * 3) : 1,
@@ -211,6 +203,105 @@ export function getResidentialDetail(type: ResidentialType, id: string) {
       verified: true,
       memberSince: "2024",
       responseTime: "within 1 hour",
+    },
+  };
+}
+
+export function getCommercialDetail(id: string) {
+  const item = MOCK_COMMERCIAL.find((p) => p.id === id);
+  if (!item) return null;
+  const s = rand(id.length * 23 + 7);
+  return {
+    ...item,
+    gallery: Array.from({ length: 6 }, (_, i) => commercialPhoto(item.type, i)),
+    description:
+      "A prime commercial space in a well-connected business hub with modern infrastructure, 24/7 security, and professional management. Ideal for businesses seeking a prestigious address with full amenities.",
+    rooms: 3 + Math.floor(s() * 8),
+    cabins: Math.floor(s() * 5),
+    hasReception: s() > 0.4,
+    hasConferenceRoom: s() > 0.5,
+    hasGenerator: s() > 0.45,
+    hasLift: s() > 0.5,
+    hasParking: s() > 0.35,
+    floorNumber: 1 + Math.floor(s() * 10),
+    advance: item.rent * (2 + Math.floor(s() * 3)),
+    availableFrom: new Date(Date.now() + Math.floor(s() * 45) * 86400000).toISOString(),
+    minimumContract: [6, 12, 24][Math.floor(s() * 3)],
+    negotiable: s() > 0.4,
+    remarks: "Serious inquiries only. Lease agreement required.",
+    rules: {
+      businessTypeAllowed: "Any legal commercial activity",
+      access247: s() > 0.5,
+      renovationAllowed: s() > 0.55,
+    },
+    location: { lat: 23.7806 + (s() - 0.5) * 0.06, lng: 90.4074 + (s() - 0.5) * 0.06 },
+    contact: {
+      name: ["Metro Properties BD", "Prime Commercial Spaces", "Dhaka Business Hub", "Urban Assets Ltd"][Math.floor(s() * 4)],
+      phone: "+8801812345678",
+      whatsapp: "+8801812345678",
+      email: "info@primespaces.com.bd",
+      verified: true,
+      memberSince: "2022",
+      responseTime: "within 2 hours",
+    },
+  };
+}
+
+export function getRecreationalDetail(id: string) {
+  const item = MOCK_RECREATIONAL.find((p) => p.id === id);
+  if (!item) return null;
+  const s = rand(id.length * 31 + 11);
+  const roomBase = item.pricePerNight;
+  return {
+    ...item,
+    gallery: Array.from({ length: 6 }, (_, i) => recreationalPhoto(item.type, i)),
+    description:
+      "A stunning property offering premium hospitality in a breathtaking natural setting. Every corner is thoughtfully designed to deliver an unforgettable stay — from elegantly furnished rooms to world-class facilities.",
+    checkIn: "12:00 PM",
+    checkOut: "11:00 AM",
+    facilities: ["Swimming Pool", "Restaurant", "Conference Hall", "Gym", "Garden", "Parking", "BBQ Area", "Beach Access"].filter(() => s() > 0.45),
+    services: ["Room Service", "Laundry", "Tour Assistance", "Airport Pickup", "Car Rental"].filter(() => s() > 0.5),
+    rooms: [
+      {
+        type: "Standard Room",
+        available: 3 + Math.floor(s() * 5),
+        price: roomBase,
+        occupancy: 2,
+        bedType: "Double",
+        sizeSqft: 200 + Math.floor(s() * 80),
+      },
+      {
+        type: "Deluxe Room",
+        available: 2 + Math.floor(s() * 3),
+        price: Math.round((roomBase * 1.5) / 500) * 500,
+        occupancy: 2,
+        bedType: "Queen",
+        sizeSqft: 280 + Math.floor(s() * 100),
+      },
+      {
+        type: "Family Suite",
+        available: 1 + Math.floor(s() * 2),
+        price: Math.round((roomBase * 2.2) / 500) * 500,
+        occupancy: 4,
+        bedType: "King + Twin",
+        sizeSqft: 420 + Math.floor(s() * 150),
+      },
+    ],
+    rules: {
+      petsAllowed: s() > 0.7,
+      smokingAllowed: s() > 0.65,
+      outsideFoodAllowed: s() > 0.55,
+      cancellationPolicy: "Free cancellation up to 48 hours before check-in.",
+      refundPolicy: "Full refund for cancellations made 48+ hours in advance.",
+    },
+    location: { lat: 21.4272 + (s() - 0.5) * 0.4, lng: 92.0058 + (s() - 0.5) * 0.4 },
+    contact: {
+      name: ["Scenic Stays BD", "Premier Hotels Group", "Hospitality Holdings Ltd"][Math.floor(s() * 3)],
+      phone: "+8801912345678",
+      whatsapp: "+8801912345678",
+      email: "bookings@scenicstays.com.bd",
+      website: "https://scenicstays.com.bd",
+      verified: true,
     },
   };
 }

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Building2, MapPin, Maximize2, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,12 +24,15 @@ const LABEL: Record<CommercialType, string> = {
 };
 
 function CommercialPage() {
+  const matchRoute = useMatchRoute();
   const [active, setActive] = useState<CommercialType | "all">("all");
   const [q, setQ] = useState("");
   const items = useMemo(() => {
     return MOCK_COMMERCIAL.filter((p) => active === "all" || p.type === active)
       .filter((p) => !q || (p.name + p.area + p.city).toLowerCase().includes(q.toLowerCase()));
   }, [active, q]);
+
+  if (matchRoute({ to: "/commercial/$id" })) return <Outlet />;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-10">
@@ -72,7 +75,9 @@ function CommercialPage() {
                 {p.features.map((f) => <Badge key={f} variant="outline" className="text-xs">{f}</Badge>)}
               </div>
               <div className="flex gap-2 pt-1">
-                <Button size="sm" className="flex-1" asChild><Link to="/commercial">View Details</Link></Button>
+                <Button size="sm" className="flex-1" asChild>
+                  <Link to="/commercial/$id" params={{ id: p.id }}>View Details</Link>
+                </Button>
                 <Button size="sm" variant="outline" className="gap-1"><Phone className="h-3.5 w-3.5" /> Call</Button>
               </div>
             </div>

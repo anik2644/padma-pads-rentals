@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -86,6 +86,7 @@ const DEFAULT_FILTERS: UiFilters = {
 };
 
 function ResidentialPage() {
+  const matchRoute = useMatchRoute();
   const { t } = useTranslation();
   const [filters, setFilters] = useState<UiFilters>(DEFAULT_FILTERS);
   const [applied, setApplied] = useState<UiFilters>(DEFAULT_FILTERS);
@@ -106,6 +107,8 @@ function ResidentialPage() {
       }),
     retry: 1,
   });
+
+  if (matchRoute({ to: "/residential/$type/$id" })) return <Outlet />;
 
   const items = data?.items ?? [];
 
