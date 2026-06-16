@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as ResidentialRouteImport } from './routes/residential'
 import { Route as RecreationalRouteImport } from './routes/recreational'
@@ -16,9 +17,19 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as CommercialRouteImport } from './routes/commercial'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as AuthSignupRouteImport } from './routes/auth.signup'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as ResidentialTypeIdRouteImport } from './routes/residential.$type.$id'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -54,10 +65,35 @@ const CommercialRoute = CommercialRouteImport.update({
   path: '/commercial',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthForgotRoute = AuthForgotRouteImport.update({
+  id: '/forgot',
+  path: '/forgot',
+  getParentRoute: () => AuthRoute,
 } as any)
 const ResidentialTypeIdRoute = ResidentialTypeIdRouteImport.update({
   id: '/$type/$id',
@@ -67,6 +103,7 @@ const ResidentialTypeIdRoute = ResidentialTypeIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRouteWithChildren
   '/commercial': typeof CommercialRoute
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
@@ -74,6 +111,11 @@ export interface FileRoutesByFullPath {
   '/recreational': typeof RecreationalRoute
   '/residential': typeof ResidentialRouteWithChildren
   '/saved': typeof SavedRoute
+  '/settings': typeof SettingsRoute
+  '/auth/forgot': typeof AuthForgotRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/auth/': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
 export interface FileRoutesByTo {
@@ -85,11 +127,17 @@ export interface FileRoutesByTo {
   '/recreational': typeof RecreationalRoute
   '/residential': typeof ResidentialRouteWithChildren
   '/saved': typeof SavedRoute
+  '/settings': typeof SettingsRoute
+  '/auth/forgot': typeof AuthForgotRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/auth': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRouteWithChildren
   '/commercial': typeof CommercialRoute
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
@@ -97,12 +145,18 @@ export interface FileRoutesById {
   '/recreational': typeof RecreationalRoute
   '/residential': typeof ResidentialRouteWithChildren
   '/saved': typeof SavedRoute
+  '/settings': typeof SettingsRoute
+  '/auth/forgot': typeof AuthForgotRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/auth/': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/commercial'
     | '/messages'
     | '/notifications'
@@ -110,6 +164,11 @@ export interface FileRouteTypes {
     | '/recreational'
     | '/residential'
     | '/saved'
+    | '/settings'
+    | '/auth/forgot'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/auth/'
     | '/residential/$type/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,10 +180,16 @@ export interface FileRouteTypes {
     | '/recreational'
     | '/residential'
     | '/saved'
+    | '/settings'
+    | '/auth/forgot'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/auth'
     | '/residential/$type/$id'
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/commercial'
     | '/messages'
     | '/notifications'
@@ -132,11 +197,17 @@ export interface FileRouteTypes {
     | '/recreational'
     | '/residential'
     | '/saved'
+    | '/settings'
+    | '/auth/forgot'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/auth/'
     | '/residential/$type/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
   CommercialRoute: typeof CommercialRoute
   MessagesRoute: typeof MessagesRoute
   NotificationsRoute: typeof NotificationsRoute
@@ -144,10 +215,18 @@ export interface RootRouteChildren {
   RecreationalRoute: typeof RecreationalRoute
   ResidentialRoute: typeof ResidentialRouteWithChildren
   SavedRoute: typeof SavedRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/saved': {
       id: '/saved'
       path: '/saved'
@@ -197,12 +276,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommercialRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/forgot': {
+      id: '/auth/forgot'
+      path: '/forgot'
+      fullPath: '/auth/forgot'
+      preLoaderRoute: typeof AuthForgotRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/residential/$type/$id': {
       id: '/residential/$type/$id'
@@ -213,6 +327,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthRouteChildren {
+  AuthForgotRoute: typeof AuthForgotRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthSignupRoute: typeof AuthSignupRoute
+  AuthIndexRoute: typeof AuthIndexRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthForgotRoute: AuthForgotRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthSignupRoute: AuthSignupRoute,
+  AuthIndexRoute: AuthIndexRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface ResidentialRouteChildren {
   ResidentialTypeIdRoute: typeof ResidentialTypeIdRoute
@@ -228,6 +358,7 @@ const ResidentialRouteWithChildren = ResidentialRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
   CommercialRoute: CommercialRoute,
   MessagesRoute: MessagesRoute,
   NotificationsRoute: NotificationsRoute,
@@ -235,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecreationalRoute: RecreationalRoute,
   ResidentialRoute: ResidentialRouteWithChildren,
   SavedRoute: SavedRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
