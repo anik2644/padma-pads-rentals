@@ -109,8 +109,8 @@ function Categories() {
       cta: t("home.categories.commercialCta"),
       Icon: Building2,
       gradient: "brand-gradient-blue",
-      to: "/" as const,
-      available: false,
+      to: "/commercial" as const,
+      available: true,
     },
     {
       title: t("home.categories.recreationalTitle"),
@@ -118,8 +118,8 @@ function Categories() {
       cta: t("home.categories.recreationalCta"),
       Icon: Hotel,
       gradient: "brand-gradient-teal",
-      to: "/" as const,
-      available: false,
+      to: "/recreational" as const,
+      available: true,
     },
   ];
 
@@ -229,10 +229,7 @@ function EmptyFeatured() {
   const { t } = useTranslation();
   return (
     <div className="rounded-3xl border border-dashed border-border bg-surface p-10 text-center">
-      <h3 className="font-semibold text-foreground">No featured properties yet</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Connect your Firebase auth keys to load live HomeBee listings.
-      </p>
+      <h3 className="font-semibold text-foreground">No featured properties</h3>
       <Button asChild className="mt-4">
         <Link to="/residential">{t("home.categories.residentialCta")}</Link>
       </Button>

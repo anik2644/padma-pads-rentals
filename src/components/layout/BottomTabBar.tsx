@@ -7,9 +7,9 @@ export function BottomTabBar() {
   const items = [
     { to: "/", label: t("nav.home"), Icon: Home, exact: true },
     { to: "/residential", label: t("nav.search"), Icon: Search },
-    { to: "/", label: t("nav.saved"), Icon: Heart },
-    { to: "/", label: t("nav.messages"), Icon: MessageCircle },
-    { to: "/", label: t("nav.profile"), Icon: User },
+    { to: "/saved", label: t("nav.saved"), Icon: Heart },
+    { to: "/messages", label: t("nav.messages"), Icon: MessageCircle },
+    { to: "/profile", label: t("nav.profile"), Icon: User },
   ];
 
   return (
