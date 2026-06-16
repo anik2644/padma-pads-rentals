@@ -73,6 +73,8 @@ interface UiFilters extends SearchFilters {
   lift?: boolean;
   parking?: boolean;
   wifi?: boolean;
+  attachedBathroom?: boolean;
+  kitchenAccess?: boolean;
   bedrooms?: number;
   bathrooms?: number;
   gender?: "Male" | "Female" | "Any";
@@ -383,11 +385,13 @@ function AdvancedFiltersDrawer({
 }) {
   const { t } = useTranslation();
   const toggles: Array<{ key: keyof UiFilters; label: string }> = [
-    { key: "furnished", label: t("residential.fields.furnished") },
-    { key: "balcony", label: t("residential.fields.balcony") },
-    { key: "lift", label: t("residential.fields.lift") },
-    { key: "parking", label: t("residential.fields.parking") },
-    { key: "wifi", label: t("residential.fields.wifi") },
+    { key: "furnished",        label: t("residential.fields.furnished") },
+    { key: "balcony",          label: t("residential.fields.balcony") },
+    { key: "lift",             label: t("residential.fields.lift") },
+    { key: "parking",          label: t("residential.fields.parking") },
+    { key: "wifi",             label: t("residential.fields.wifi") },
+    { key: "attachedBathroom", label: "Attached Bathroom" },
+    { key: "kitchenAccess",    label: "Kitchen Access" },
   ];
   return (
     <Sheet>
@@ -490,6 +494,8 @@ function AdvancedFiltersDrawer({
                 lift: undefined,
                 parking: undefined,
                 wifi: undefined,
+                attachedBathroom: undefined,
+                kitchenAccess: undefined,
                 bedrooms: undefined,
                 bathrooms: undefined,
                 gender: undefined,

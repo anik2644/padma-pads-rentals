@@ -91,8 +91,8 @@ export const MOCK_RESIDENTIAL: PropertyListItem[] = [
 ];
 
 // ===== Commercial =====
-export type CommercialType = "offices" | "shops" | "showrooms" | "warehouses";
-export const COMMERCIAL_TYPES: CommercialType[] = ["offices", "shops", "showrooms", "warehouses"];
+export type CommercialType = "offices" | "shops" | "showrooms" | "warehouses" | "restaurants";
+export const COMMERCIAL_TYPES: CommercialType[] = ["offices", "shops", "showrooms", "warehouses", "restaurants"];
 
 export interface CommercialItem {
   id: string;
@@ -113,6 +113,7 @@ const COMM_RENT: Record<CommercialType, [number, number]> = {
   shops: [15000, 70000],
   showrooms: [40000, 200000],
   warehouses: [30000, 150000],
+  restaurants: [20000, 90000],
 };
 
 export const MOCK_COMMERCIAL: CommercialItem[] = COMMERCIAL_TYPES.flatMap((type, ti) => {
@@ -124,7 +125,7 @@ export const MOCK_COMMERCIAL: CommercialItem[] = COMMERCIAL_TYPES.flatMap((type,
     return {
       id: `${type}-${i + 1}`,
       type,
-      name: `${FIRST_NAMES[(ti + i) % FIRST_NAMES.length]} ${type === "warehouses" ? "Depot" : type === "shops" ? "Plaza" : "Center"}`,
+      name: `${FIRST_NAMES[(ti + i) % FIRST_NAMES.length]} ${type === "warehouses" ? "Depot" : type === "shops" ? "Plaza" : type === "restaurants" ? "Kitchen" : "Center"}`,
       area: areas[i % areas.length],
       city: division === "Dhaka" ? "Dhaka" : "Chattogram",
       division,
@@ -138,8 +139,8 @@ export const MOCK_COMMERCIAL: CommercialItem[] = COMMERCIAL_TYPES.flatMap((type,
 });
 
 // ===== Recreational =====
-export type RecreationalType = "hotels" | "resorts" | "guesthouses" | "villas";
-export const RECREATIONAL_TYPES: RecreationalType[] = ["hotels", "resorts", "guesthouses", "villas"];
+export type RecreationalType = "hotels" | "resorts" | "guesthouses" | "villas" | "motels" | "cottages";
+export const RECREATIONAL_TYPES: RecreationalType[] = ["hotels", "resorts", "guesthouses", "villas", "motels", "cottages"];
 
 export interface RecreationalItem {
   id: string;
@@ -159,6 +160,8 @@ const REC_PRICE: Record<RecreationalType, [number, number]> = {
   resorts: [6000, 25000],
   guesthouses: [2000, 6000],
   villas: [8000, 35000],
+  motels: [1500, 5000],
+  cottages: [3000, 15000],
 };
 
 export const MOCK_RECREATIONAL: RecreationalItem[] = RECREATIONAL_TYPES.flatMap((type, ti) => {
@@ -169,7 +172,7 @@ export const MOCK_RECREATIONAL: RecreationalItem[] = RECREATIONAL_TYPES.flatMap(
     return {
       id: `${type}-${i + 1}`,
       type,
-      name: `${FIRST_NAMES[(ti * 2 + i) % FIRST_NAMES.length]} ${type === "resorts" ? "Resort" : type === "villas" ? "Villa" : type === "hotels" ? "Hotel" : "Inn"}`,
+      name: `${FIRST_NAMES[(ti * 2 + i) % FIRST_NAMES.length]} ${type === "resorts" ? "Resort" : type === "villas" ? "Villa" : type === "hotels" ? "Hotel" : type === "cottages" ? "Cottage" : type === "motels" ? "Motel" : "Inn"}`,
       city,
       division: city === "Cox's Bazar" ? "Chattogram" : "Sylhet",
       pricePerNight: Math.round((lo + r() * (hi - lo)) / 500) * 500,

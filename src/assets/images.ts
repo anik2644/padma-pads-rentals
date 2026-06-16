@@ -40,10 +40,11 @@ export const COMMERCIAL_ASSET_IMAGES: string[] = [
 ];
 
 export const COMMERCIAL_IMAGE_BY_TYPE: Record<string, string> = {
-  offices:    "/assets/images/commercial/office.svg",
-  shops:      "/assets/images/commercial/shop.svg",
-  showrooms:  "/assets/images/commercial/showroom.svg",
-  warehouses: "/assets/images/commercial/warehouse.svg",
+  offices:     "/assets/images/commercial/office.svg",
+  shops:       "/assets/images/commercial/shop.svg",
+  showrooms:   "/assets/images/commercial/showroom.svg",
+  warehouses:  "/assets/images/commercial/warehouse.svg",
+  restaurants: "/assets/images/commercial/shop.svg",
 };
 
 // ─── Recreational ─────────────────────────────────────────────────────────────
@@ -55,8 +56,10 @@ export const RECREATIONAL_ASSET_IMAGES: string[] = [
 ];
 
 export const RECREATIONAL_IMAGE_BY_TYPE: Record<string, string> = {
-  hotels:       "/assets/images/recreational/hotel.svg",
-  resorts:      "/assets/images/recreational/resort.svg",
-  guesthouses:  "/assets/images/recreational/guesthouse.svg",
-  villas:       "/assets/images/recreational/villa.svg",
+  hotels:      "/assets/images/recreational/hotel.svg",
+  resorts:     "/assets/images/recreational/resort.svg",
+  guesthouses: "/assets/images/recreational/guesthouse.svg",
+  villas:      "/assets/images/recreational/villa.svg",
+  motels:      "/assets/images/recreational/hotel.svg",
+  cottages:    "/assets/images/recreational/guesthouse.svg",
 };
