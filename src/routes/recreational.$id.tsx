@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft, MapPin, Star, Phone, MessageCircle,
   Heart, Share2, Shield, CheckCircle2, CalendarDays,
@@ -13,6 +13,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getRecreationalDetail } from "@/lib/mock-data";
 import { formatBDT } from "@/lib/format";
+import { useAuthStore } from "@/store/authStore";
+import { VisitRequestPanel } from "@/components/property/VisitRequestPanel";
+import { trackPropertyView } from "@/lib/property-view-tracking";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/recreational/$id")({
@@ -51,8 +54,19 @@ const FACILITY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 
 function RecreationalDetail() {
   const item = Route.useLoaderData();
+  const user = useAuthStore((s) => s.user);
   const [saved, setSaved] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+  const advertisementId = `recreational-${item.id}`;
+
+  useEffect(() => {
+    trackPropertyView({
+      advertisementId,
+      propertyId: item.id,
+      viewerType: user ? "REGISTERED" : "GUEST",
+      viewerId: user?.id,
+    });
+  }, [advertisementId, item.id, user]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -260,14 +274,31 @@ function RecreationalDetail() {
               >
                 <Phone className="h-4 w-4" /> {item.contact.phone}
               </Button>
-              <Button variant="outline" className="w-full gap-2" onClick={() => toast("Opening chat...")}>
-                <MessageCircle className="h-4 w-4" /> Message
+              <Button variant="outline" className="w-full gap-2" asChild>
+                <Link
+                  to="/messages"
+                  search={{
+                    owner: item.contact.name,
+                    property: item.name,
+                    phone: item.contact.phone,
+                    avatar: item.contact.name.slice(0, 2).toUpperCase(),
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4" /> Message
+                </Link>
               </Button>
             </div>
             <p className="mt-4 text-center text-[11px] text-muted-foreground">
               Free cancellation up to 48 hours before check-in.
             </p>
           </div>
+          <VisitRequestPanel
+            advertisementId={advertisementId}
+            propertyId={item.id}
+            propertyTitle={item.name}
+            requesterId={user?.id ?? "guest"}
+            requesterName={user?.name ?? "Guest"}
+          />
         </aside>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { getFirebaseAuth } from "./firebase";
 
-export const API_BASE = "http://213.136.73.10:8060";
+export const API_BASE = import.meta.env.VITE_BACKEND_BASE ?? "http://213.136.73.10:8060";
 
 export const api = axios.create({
   baseURL: API_BASE,

@@ -18,6 +18,7 @@ export interface MockUser {
   email: string | null;
   phone: string | null;
   avatarInitials: string;
+  avatarUrl?: string | null;
   city: string;
   joinedYear: string;
   verified: boolean;

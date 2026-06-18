@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Send, Phone, MoreVertical } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,12 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/messages")({
   head: () => ({ meta: [{ title: "Messages — HomeBee" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    owner: typeof search.owner === "string" ? search.owner : undefined,
+    property: typeof search.property === "string" ? search.property : undefined,
+    phone: typeof search.phone === "string" ? search.phone : undefined,
+    avatar: typeof search.avatar === "string" ? search.avatar : undefined,
+  }),
   component: MessagesPage,
 });
 
@@ -19,9 +25,40 @@ const CHAT_HISTORY = [
   { from: "them", text: "Sure, you can visit tomorrow at 5 PM.", time: "10:05" },
 ];
 
+type MessageThread = (typeof MOCK_MESSAGES)[number] & { phone?: string };
+
 function MessagesPage() {
-  const [active, setActive] = useState(MOCK_MESSAGES[0]);
+  const search = Route.useSearch();
+  const messages = useMemo(() => {
+    if (!search.owner || !search.property) return MOCK_MESSAGES;
+
+    const existing = MOCK_MESSAGES.find(
+      (m) => m.name === search.owner && m.property === search.property,
+    );
+    if (existing) return MOCK_MESSAGES;
+
+    return [
+      {
+        id: `property-${search.property}-${search.owner}`,
+        name: search.owner,
+        property: search.property,
+        lastMessage: "Start a conversation about this property.",
+        time: "Now",
+        unread: 0,
+        avatar: search.avatar || initialsFrom(search.owner),
+        phone: search.phone,
+      },
+      ...MOCK_MESSAGES,
+    ];
+  }, [search.avatar, search.owner, search.phone, search.property]);
+  const initialActive =
+    messages.find((m) => m.name === search.owner && m.property === search.property) ?? messages[0];
+  const [active, setActive] = useState<MessageThread>(initialActive);
   const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    setActive(initialActive);
+  }, [initialActive]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-0 md:px-6 md:py-6">
@@ -32,7 +69,7 @@ function MessagesPage() {
             <h1 className="text-xl font-bold">Messages</h1>
           </div>
           <ul>
-            {MOCK_MESSAGES.map((m) => (
+            {messages.map((m) => (
               <li key={m.id}>
                 <button onClick={() => setActive(m)} className={cn(
                   "flex w-full items-center gap-3 border-b border-border/60 px-4 py-3 text-left transition-colors hover:bg-accent",
@@ -92,4 +129,9 @@ function MessagesPage() {
       </div>
     </div>
   );
+}
+
+function initialsFrom(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return `${parts[0]?.[0] ?? "H"}${parts[1]?.[0] ?? "B"}`.toUpperCase();
 }

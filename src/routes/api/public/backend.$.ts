@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const BACKEND_BASE = "http://213.136.73.10:8060";
+const BACKEND_BASE = import.meta.env.VITE_BACKEND_BASE ?? "http://213.136.73.10:8060";
 
 async function proxy({ request, params }: { request: Request; params: { _splat?: string } }) {
   const splat = params._splat ?? "";

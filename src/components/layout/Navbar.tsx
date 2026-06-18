@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { HomeBeeLogo } from "@/components/brand/HomeBeeLogo";
 import { ThemeToggle, LanguageToggle } from "@/components/common/Toggles";
 import { useAuthStore } from "@/store/authStore";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Navbar() {
   const { t } = useTranslation();
@@ -42,6 +42,7 @@ export function Navbar() {
                 className="hidden h-9 items-center gap-2 rounded-full border border-border bg-surface pl-1 pr-3 text-sm font-medium hover:bg-accent sm:inline-flex"
               >
                 <Avatar className="h-7 w-7 text-xs">
+                  {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.name} />}
                   <AvatarFallback>{user.avatarInitials}</AvatarFallback>
                 </Avatar>
                 {user.name.split(" ")[0]}
@@ -51,20 +52,12 @@ export function Navbar() {
               </Link>
             </>
           ) : (
-            <>
-              <Link
-                to="/auth/login"
-                className="hidden h-9 items-center rounded-full border border-border px-4 text-sm font-medium hover:bg-accent sm:inline-flex"
-              >
-                {t("common.login")}
-              </Link>
-              <Link
-                to="/auth/signup"
-                className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-              >
-                {t("common.signup")}
-              </Link>
-            </>
+            <Link
+              to="/auth/login"
+              className="inline-flex h-9 items-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              {t("common.login")}
+            </Link>
           )}
         </div>
       </div>

@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { toast } from "sonner";
-import { AuthForm, type AuthMethod } from "@/components/auth/AuthForm";
+import { AuthForm } from "@/components/auth/AuthForm";
 import { SocialButtons } from "@/components/auth/SocialButtons";
-import { mockAuth } from "@/lib/mock-auth";
+import { firebaseUserToStoreUser } from "@/lib/firebase-auth";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
 
 export const Route = createFileRoute("/auth/login")({
@@ -14,53 +16,51 @@ function LoginPage() {
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
   const setToken = useAuthStore((s) => s.setToken);
-  const [method, setMethod] = useState<AuthMethod>("email");
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleLogin({ identifier, password }: { identifier: string; password: string }) {
+  async function handleLogin({ email, password }: { email: string; password: string }) {
     setSubmitting(true);
     try {
-      if (method === "email") {
-        // Real Firebase-backed login through the proxy
-        const { api, ApiError } = await import("@/lib/api-client");
-        try {
-          const res = await api<{ id_token: string; refresh_token: string; expires_in: string }>(
-            "/api/v1/login",
-            { method: "POST", body: { email: identifier, password }, skipAuth: true },
-          );
-          setToken(res.id_token);
-          const user = await mockAuth.loginEmail(identifier, password);
-          setUser({ ...user, email: identifier });
-          toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
-          navigate({ to: "/" });
-          return;
-        } catch (err) {
-          if (err instanceof ApiError) {
-            toast.error(`Login failed: ${err.message}`);
-            return;
-          }
-          throw err;
-        }
+      const auth = getFirebaseAuth();
+      if (!auth) {
+        toast.error("Firebase is not configured. Add your VITE_FIREBASE_* values.");
+        return;
       }
-      // Phone login still uses the mock flow until backend supports it
-      const user = await mockAuth.loginPhone(identifier, password);
+      const credential = await signInWithEmailAndPassword(auth, email, password);
+      const [user, token] = await Promise.all([
+        firebaseUserToStoreUser(credential.user),
+        credential.user.getIdToken(),
+      ]);
       setUser(user);
-      setToken(`mock_token_${user.id}`);
+      setToken(token);
       toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
       navigate({ to: "/" });
+    } catch (err) {
+      toast.error(firebaseAuthMessage(err));
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleSocial(provider: "google" | "facebook" | "apple") {
+  async function handleGoogle() {
     setSubmitting(true);
     try {
-      const user = await mockAuth.social(provider);
+      const auth = getFirebaseAuth();
+      if (!auth) {
+        toast.error("Firebase is not configured. Add your VITE_FIREBASE_* values.");
+        return;
+      }
+      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
+      const [user, token] = await Promise.all([
+        firebaseUserToStoreUser(credential.user),
+        credential.user.getIdToken(),
+      ]);
       setUser(user);
-      setToken(`mock_token_${user.id}`);
-      toast.success(`Signed in with ${provider}`);
+      setToken(token);
+      toast.success("Signed in with Google");
       navigate({ to: "/" });
+    } catch (err) {
+      toast.error(firebaseAuthMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -73,16 +73,24 @@ function LoginPage() {
         <p className="mt-1 text-sm text-muted-foreground">Log in to continue browsing homes.</p>
       </div>
       <AuthForm
-        mode="login"
-        method={method}
-        onMethodChange={setMethod}
         onSubmit={handleLogin}
         submitting={submitting}
       />
       <Divider />
-      <SocialButtons onProvider={handleSocial} disabled={submitting} mode="login" />
+      <SocialButtons onProvider={handleGoogle} disabled={submitting} mode="login" />
     </div>
   );
+}
+
+function firebaseAuthMessage(err: unknown) {
+  const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
+  if (code === "auth/invalid-credential") return "Invalid email or password.";
+  if (code === "auth/popup-closed-by-user") return "Google sign-in was closed.";
+  if (code === "auth/popup-blocked") return "Popup was blocked. Allow popups and try again.";
+  if (code === "auth/unauthorized-domain") {
+    return "This domain is not authorized in Firebase Authentication settings.";
+  }
+  return "Login failed. Please try again.";
 }
 
 function Divider() {

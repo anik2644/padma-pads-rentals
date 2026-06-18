@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft, MapPin, Maximize2, Building2, Phone, MessageCircle,
   Heart, Share2, Shield, Clock, CheckCircle2, CalendarDays, Layers,
@@ -12,6 +12,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getCommercialDetail } from "@/lib/mock-data";
 import { formatBDT, formatDate } from "@/lib/format";
+import { useAuthStore } from "@/store/authStore";
+import { VisitRequestPanel } from "@/components/property/VisitRequestPanel";
+import { trackPropertyView } from "@/lib/property-view-tracking";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/commercial/$id")({
@@ -41,8 +44,19 @@ const TYPE_LABEL: Record<string, string> = {
 
 function CommercialDetail() {
   const item = Route.useLoaderData();
+  const user = useAuthStore((s) => s.user);
   const [saved, setSaved] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+  const advertisementId = `commercial-${item.id}`;
+
+  useEffect(() => {
+    trackPropertyView({
+      advertisementId,
+      propertyId: item.id,
+      viewerType: user ? "REGISTERED" : "GUEST",
+      viewerId: user?.id,
+    });
+  }, [advertisementId, item.id, user]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -219,8 +233,18 @@ function CommercialDetail() {
               <Button className="w-full gap-2" onClick={() => toast.success("Calling owner...")}>
                 <Phone className="h-4 w-4" /> {item.contact.phone}
               </Button>
-              <Button variant="outline" className="w-full gap-2" onClick={() => toast("Opening chat...")}>
-                <MessageCircle className="h-4 w-4" /> Message owner
+              <Button variant="outline" className="w-full gap-2" asChild>
+                <Link
+                  to="/messages"
+                  search={{
+                    owner: item.contact.name,
+                    property: item.name,
+                    phone: item.contact.phone,
+                    avatar: item.contact.name.slice(0, 2).toUpperCase(),
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4" /> Message owner
+                </Link>
               </Button>
               <Button variant="outline" className="w-full gap-2" onClick={() => toast.success("Visit request sent!")}>
                 <CalendarDays className="h-4 w-4" /> Schedule Visit
@@ -230,6 +254,13 @@ function CommercialDetail() {
               Never pay before viewing. Report suspicious listings.
             </p>
           </div>
+          <VisitRequestPanel
+            advertisementId={advertisementId}
+            propertyId={item.id}
+            propertyTitle={item.name}
+            requesterId={user?.id ?? "guest"}
+            requesterName={user?.name ?? "Guest"}
+          />
         </aside>
       </div>
     </div>

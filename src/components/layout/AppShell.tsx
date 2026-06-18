@@ -1,16 +1,84 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useLanguageStore } from "@/store/languageStore";
 import { initI18n } from "@/i18n";
 import { Navbar } from "./Navbar";
 import { BottomTabBar } from "./BottomTabBar";
 import { Toaster } from "@/components/ui/sonner";
+import { firebaseUserToStoreUser } from "@/lib/firebase-auth";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { useAuthStore } from "@/store/authStore";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { lang } = useLanguageStore();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const setToken = useAuthStore((s) => s.setToken);
+  const clearAuth = useAuthStore((s) => s.signOut);
+  const [authReady, setAuthReady] = useState(false);
+  const isAuthRoute = location.pathname.startsWith("/auth");
 
   useEffect(() => {
     initI18n(lang);
   }, [lang]);
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setAuthReady(true);
+      return;
+    }
+
+    return onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        clearAuth();
+        setAuthReady(true);
+        return;
+      }
+
+      const [user, token] = await Promise.all([
+        firebaseUserToStoreUser(firebaseUser),
+        firebaseUser.getIdToken(),
+      ]);
+      setUser(user);
+      setToken(token);
+      setAuthReady(true);
+    });
+  }, [clearAuth, setToken, setUser]);
+
+  useEffect(() => {
+    if (!authReady) return;
+
+    if (!user && !isAuthRoute) {
+      navigate({ to: "/auth/login", replace: true });
+      return;
+    }
+
+    if (user && isAuthRoute) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [authReady, isAuthRoute, navigate, user]);
+
+  if (!authReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        Loading...
+        <Toaster position="top-right" />
+      </div>
+    );
+  }
+
+  if (isAuthRoute) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        {children}
+        <Toaster position="top-right" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -21,4 +89,3 @@ export function AppShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
-
