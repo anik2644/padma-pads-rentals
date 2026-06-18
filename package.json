@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "local": "VITE_BACKEND_BASE=http://localhost:8060 vite dev",
+    "local": "VITE_BACKEND_BASE=http://127.0.0.1:8060 vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",

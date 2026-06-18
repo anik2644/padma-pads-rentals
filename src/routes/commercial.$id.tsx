@@ -15,6 +15,7 @@ import { formatBDT, formatDate } from "@/lib/format";
 import { useAuthStore } from "@/store/authStore";
 import { VisitRequestPanel } from "@/components/property/VisitRequestPanel";
 import { trackPropertyView } from "@/lib/property-view-tracking";
+import { createFavorite, deleteFavorite, listFavorites } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/commercial/$id")({
@@ -46,8 +47,10 @@ function CommercialDetail() {
   const item = Route.useLoaderData();
   const user = useAuthStore((s) => s.user);
   const [saved, setSaved] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
   const advertisementId = `commercial-${item.id}`;
+  const ownerId = `owner-${item.contact.name.toLowerCase().replace(/\W+/g, "-")}`;
 
   useEffect(() => {
     trackPropertyView({
@@ -55,8 +58,36 @@ function CommercialDetail() {
       propertyId: item.id,
       viewerType: user ? "REGISTERED" : "GUEST",
       viewerId: user?.id,
-    });
+    }).catch(() => undefined);
   }, [advertisementId, item.id, user]);
+
+  useEffect(() => {
+    listFavorites({ advertisementId, propertyId: item.id, pageSize: 1 })
+      .then((res) => {
+        const favorite = res.items[0];
+        setFavoriteId(favorite?.id ?? null);
+        setSaved(Boolean(favorite));
+      })
+      .catch(() => undefined);
+  }, [advertisementId, item.id]);
+
+  async function toggleFavorite() {
+    try {
+      if (favoriteId) {
+        await deleteFavorite({ advertisementId });
+        setFavoriteId(null);
+        setSaved(false);
+        toast.success("Removed from saved listings");
+        return;
+      }
+      const favorite = await createFavorite({ advertisementId, propertyId: item.id });
+      setFavoriteId(favorite.id);
+      setSaved(true);
+      toast.success("Saved listing");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update saved listing");
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -73,7 +104,7 @@ function CommercialDetail() {
           <img src={item.gallery[activeImg]} alt={item.name} className="h-full w-full object-cover" />
           <div className="absolute right-3 top-3 flex gap-2">
             <button
-              onClick={() => setSaved((s) => !s)}
+              onClick={toggleFavorite}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur transition hover:scale-105"
               aria-label="Save"
             >
@@ -239,6 +270,9 @@ function CommercialDetail() {
                   search={{
                     owner: item.contact.name,
                     property: item.name,
+                    advertisementId,
+                    propertyId: item.id,
+                    receiverId: ownerId,
                     phone: item.contact.phone,
                     avatar: item.contact.name.slice(0, 2).toUpperCase(),
                   }}
@@ -257,8 +291,6 @@ function CommercialDetail() {
           <VisitRequestPanel
             advertisementId={advertisementId}
             propertyId={item.id}
-            propertyTitle={item.name}
-            requesterId={user?.id ?? "guest"}
             requesterName={user?.name ?? "Guest"}
           />
         </aside>

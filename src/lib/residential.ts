@@ -42,6 +42,7 @@ export interface SearchFilters {
 
 export interface PropertyListItem {
   id: string;
+  advertisementId?: string;
   type: ResidentialType;
   name: string;
   title?: string;
@@ -142,6 +143,7 @@ function normalize(type: ResidentialType, raw: RawWithAd): PropertyListItem {
   const { rent, label } = rentFor(type, p.rentalDetails);
   return {
     id: p.id,
+    advertisementId: raw.advertisement?.id,
     type,
     name: p.basicInfo?.propertyName ?? p.basicInfo?.title ?? "Untitled",
     title: p.basicInfo?.title,
@@ -200,6 +202,8 @@ export async function searchResidential(
 
 export interface PropertyDetail {
   id: string;
+  advertisementId: string;
+  ownerId: string;
   type: ResidentialType;
   name: string;
   title: string;
@@ -280,6 +284,8 @@ export async function fetchResidentialDetail(
 
   return {
     id: p.id,
+    advertisementId: raw.advertisement.id,
+    ownerId: p.ownerId,
     type,
     name: p.basicInfo.propertyName,
     title: p.basicInfo.title,

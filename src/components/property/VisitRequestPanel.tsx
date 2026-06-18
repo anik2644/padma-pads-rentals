@@ -16,8 +16,6 @@ import { cn } from "@/lib/utils";
 interface VisitRequestPanelProps {
   advertisementId: string;
   propertyId: string;
-  propertyTitle: string;
-  requesterId: string;
   requesterName: string;
   showOwnerActions?: boolean;
 }
@@ -34,8 +32,6 @@ const HOURS = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2
 export function VisitRequestPanel({
   advertisementId,
   propertyId,
-  propertyTitle,
-  requesterId,
   requesterName,
   showOwnerActions = true,
 }: VisitRequestPanelProps) {
@@ -52,14 +48,17 @@ export function VisitRequestPanel({
     () =>
       requests.find(
         (request) =>
-          request.requesterId === requesterId &&
-          (request.status === "PENDING" || request.status === "APPROVED"),
+          request.status === "PENDING" || request.status === "APPROVED",
       ) ?? null,
-    [requesterId, requests],
+    [requests],
   );
 
-  function refresh() {
-    setRequests(visitRequestsApi.list(propertyId));
+  async function refresh() {
+    try {
+      setRequests(await visitRequestsApi.list(propertyId));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not load visit requests");
+    }
   }
 
   useEffect(() => {
@@ -83,12 +82,9 @@ export function VisitRequestPanel({
 
     setSaving(true);
     try {
-      visitRequestsApi.create({
+      await visitRequestsApi.create({
         advertisementId,
         propertyId,
-        propertyTitle,
-        requesterId,
-        requesterName,
         preferredDate,
         preferredTime,
         alternateDate: alternateDate || undefined,
@@ -96,35 +92,47 @@ export function VisitRequestPanel({
         message: message.trim() || undefined,
       });
       resetForm();
-      refresh();
+      await refresh();
       toast.success("Visit request created");
     } finally {
       setSaving(false);
     }
   }
 
-  function cancelRequest(requestId: string) {
-    visitRequestsApi.cancel(requestId);
-    refresh();
-    toast.success("Visit request cancelled");
+  async function cancelRequest(requestId: string) {
+    try {
+      await visitRequestsApi.cancel(requestId);
+      await refresh();
+      toast.success("Visit request cancelled");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not cancel visit request");
+    }
   }
 
-  function approveRequest(requestId: string) {
-    visitRequestsApi.approve(requestId);
-    refresh();
-    toast.success("Visit request approved");
+  async function approveRequest(requestId: string) {
+    try {
+      await visitRequestsApi.approve(requestId);
+      await refresh();
+      toast.success("Visit request approved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not approve visit request");
+    }
   }
 
-  function rejectRequest(requestId: string) {
+  async function rejectRequest(requestId: string) {
     const reason = rejectionReason.trim();
     if (!reason) {
       toast.error("Add a rejection reason first.");
       return;
     }
-    visitRequestsApi.reject(requestId, reason);
-    setRejectionReason("");
-    refresh();
-    toast.success("Visit request rejected");
+    try {
+      await visitRequestsApi.reject(requestId, reason);
+      setRejectionReason("");
+      await refresh();
+      toast.success("Visit request rejected");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not reject visit request");
+    }
   }
 
   return (
@@ -278,20 +286,20 @@ function RequestDetails({ request }: { request: VisitRequest }) {
   return (
     <div className="space-y-2 text-xs">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-medium">{request.requesterName}</p>
+        <p className="font-medium">Requester: {request.requesterId}</p>
         <Badge variant="outline" className={cn("border", status.className)}>
           {status.label}
         </Badge>
       </div>
       <p className="flex items-center gap-1 text-muted-foreground">
         <CalendarDays className="h-3.5 w-3.5" />
-        {request.preferredDate}
+        {formatDateOnly(request.preferredDate)}
         <Clock className="ml-2 h-3.5 w-3.5" />
         {request.preferredTime}
       </p>
       {request.alternateDate && (
         <p className="text-muted-foreground">
-          Alternate: {request.alternateDate}
+          Alternate: {formatDateOnly(request.alternateDate)}
           {request.alternateTime ? ` at ${request.alternateTime}` : ""}
         </p>
       )}
@@ -302,11 +310,11 @@ function RequestDetails({ request }: { request: VisitRequest }) {
         </p>
       )}
       <div className="space-y-0.5 text-[11px] text-muted-foreground">
-        <p>Created: {formatDateTime(request.createdAt)}</p>
-        <p>Updated: {formatDateTime(request.updatedAt)}</p>
-        {request.approvedAt && <p>Approved: {formatDateTime(request.approvedAt)}</p>}
-        {request.rejectedAt && <p>Rejected: {formatDateTime(request.rejectedAt)}</p>}
-        {request.cancelledAt && <p>Cancelled: {formatDateTime(request.cancelledAt)}</p>}
+        <p>Created: {formatDateTime(request.audit.createdAt)}</p>
+        <p>Updated: {formatDateTime(request.audit.updatedAt)}</p>
+        {request.audit.approvedAt && <p>Approved: {formatDateTime(request.audit.approvedAt)}</p>}
+        {request.audit.rejectedAt && <p>Rejected: {formatDateTime(request.audit.rejectedAt)}</p>}
+        {request.audit.cancelledAt && <p>Cancelled: {formatDateTime(request.audit.cancelledAt)}</p>}
       </div>
     </div>
   );
@@ -317,4 +325,8 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatDateOnly(value: string) {
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
 }

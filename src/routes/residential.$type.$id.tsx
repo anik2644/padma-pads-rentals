@@ -15,6 +15,7 @@ import { useLanguageStore } from "@/store/languageStore";
 import { useAuthStore } from "@/store/authStore";
 import { VisitRequestPanel } from "@/components/property/VisitRequestPanel";
 import { trackPropertyView } from "@/lib/property-view-tracking";
+import { createFavorite, deleteFavorite, listFavorites } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/residential/$type/$id")({
@@ -44,8 +45,9 @@ function PropertyDetail() {
   const { lang } = useLanguageStore();
   const user = useAuthStore((s) => s.user);
   const [saved, setSaved] = useState(false);
+  const [favoriteId, setFavoriteId] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
-  const advertisementId = `residential-${item.id}`;
+  const advertisementId = item.advertisementId;
 
   useEffect(() => {
     trackPropertyView({
@@ -53,8 +55,36 @@ function PropertyDetail() {
       propertyId: item.id,
       viewerType: user ? "REGISTERED" : "GUEST",
       viewerId: user?.id,
-    });
+    }).catch(() => undefined);
   }, [advertisementId, item.id, user]);
+
+  useEffect(() => {
+    listFavorites({ advertisementId, propertyId: item.id, pageSize: 1 })
+      .then((res) => {
+        const favorite = res.items[0];
+        setFavoriteId(favorite?.id ?? null);
+        setSaved(Boolean(favorite));
+      })
+      .catch(() => undefined);
+  }, [advertisementId, item.id]);
+
+  async function toggleFavorite() {
+    try {
+      if (favoriteId) {
+        await deleteFavorite({ advertisementId });
+        setFavoriteId(null);
+        setSaved(false);
+        toast.success("Removed from saved listings");
+        return;
+      }
+      const favorite = await createFavorite({ advertisementId, propertyId: item.id });
+      setFavoriteId(favorite.id);
+      setSaved(true);
+      toast.success("Saved listing");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update saved listing");
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
@@ -67,7 +97,7 @@ function PropertyDetail() {
         <div className="relative md:col-span-3 aspect-[16/10] overflow-hidden rounded-3xl bg-muted">
           <img src={item.gallery[activeImg]} alt={item.name} className="h-full w-full object-cover" />
           <div className="absolute right-3 top-3 flex gap-2">
-            <button onClick={() => setSaved((s) => !s)} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur hover:scale-105 transition" aria-label="Save">
+            <button onClick={toggleFavorite} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur hover:scale-105 transition" aria-label="Save">
               <Heart className={cn("h-4 w-4", saved ? "fill-primary text-primary" : "")} />
             </button>
             <button onClick={() => toast.success("Link copied")} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur hover:scale-105 transition" aria-label="Share">
@@ -179,6 +209,9 @@ function PropertyDetail() {
                   search={{
                     owner: item.owner.name,
                     property: item.name,
+                    advertisementId,
+                    propertyId: item.id,
+                    receiverId: item.ownerId,
                     phone: item.owner.phone,
                     avatar: item.owner.name
                       .split(" ")
@@ -197,8 +230,6 @@ function PropertyDetail() {
           <VisitRequestPanel
             advertisementId={advertisementId}
             propertyId={item.id}
-            propertyTitle={item.name}
-            requesterId={user?.id ?? "guest"}
             requesterName={user?.name ?? "Guest"}
           />
         </aside>

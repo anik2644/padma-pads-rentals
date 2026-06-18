@@ -24,13 +24,19 @@ async function proxy({ request, params }: { request: Request; params: { _splat?:
 
   try {
     const res = await fetch(target, init);
-    const buf = await res.arrayBuffer();
-    return new Response(buf, {
+    const hasNoBody = res.status === 204 || res.status === 205 || res.status === 304;
+    const body = hasNoBody ? null : await res.arrayBuffer();
+    const responseHeaders: HeadersInit = {
+      "cache-control": "no-store",
+    };
+    const contentType = res.headers.get("content-type");
+    if (!hasNoBody && contentType) {
+      responseHeaders["content-type"] = contentType;
+    }
+
+    return new Response(body, {
       status: res.status,
-      headers: {
-        "content-type": res.headers.get("content-type") ?? "application/json",
-        "cache-control": "no-store",
-      },
+      headers: responseHeaders,
     });
   } catch (err) {
     return new Response(
