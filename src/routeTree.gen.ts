@@ -26,6 +26,7 @@ import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as ResidentialTypeIdRouteImport } from './routes/residential.$type.$id'
+import { Route as ApiPublicBackendSplatRouteImport } from './routes/api/public/backend.$'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -112,6 +113,11 @@ const ResidentialTypeIdRoute = ResidentialTypeIdRouteImport.update({
   path: '/$type/$id',
   getParentRoute: () => ResidentialRoute,
 } as any)
+const ApiPublicBackendSplatRoute = ApiPublicBackendSplatRouteImport.update({
+  id: '/api/public/backend/$',
+  path: '/api/public/backend/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/recreational/$id': typeof RecreationalIdRoute
   '/auth/': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
+  '/api/public/backend/$': typeof ApiPublicBackendSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/recreational/$id': typeof RecreationalIdRoute
   '/auth': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
+  '/api/public/backend/$': typeof ApiPublicBackendSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/recreational/$id': typeof RecreationalIdRoute
   '/auth/': typeof AuthIndexRoute
   '/residential/$type/$id': typeof ResidentialTypeIdRoute
+  '/api/public/backend/$': typeof ApiPublicBackendSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/recreational/$id'
     | '/auth/'
     | '/residential/$type/$id'
+    | '/api/public/backend/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/recreational/$id'
     | '/auth'
     | '/residential/$type/$id'
+    | '/api/public/backend/$'
   id:
     | '__root__'
     | '/'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/recreational/$id'
     | '/auth/'
     | '/residential/$type/$id'
+    | '/api/public/backend/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -240,6 +252,7 @@ export interface RootRouteChildren {
   ResidentialRoute: typeof ResidentialRouteWithChildren
   SavedRoute: typeof SavedRoute
   SettingsRoute: typeof SettingsRoute
+  ApiPublicBackendSplatRoute: typeof ApiPublicBackendSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResidentialTypeIdRouteImport
       parentRoute: typeof ResidentialRoute
     }
+    '/api/public/backend/$': {
+      id: '/api/public/backend/$'
+      path: '/api/public/backend/$'
+      fullPath: '/api/public/backend/$'
+      preLoaderRoute: typeof ApiPublicBackendSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -429,17 +449,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResidentialRoute: ResidentialRouteWithChildren,
   SavedRoute: SavedRoute,
   SettingsRoute: SettingsRoute,
+  ApiPublicBackendSplatRoute: ApiPublicBackendSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

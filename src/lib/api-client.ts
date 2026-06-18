@@ -62,9 +62,10 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   const text = await res.text();
   const data = text ? safeJson(text) : null;
   if (!res.ok) {
-    const msg =
-      (data && typeof data === "object" && "detail" in data && String((data as { detail: unknown }).detail)) ||
-      `Request failed (${res.status})`;
+    let msg = `Request failed (${res.status})`;
+    if (data && typeof data === "object" && "detail" in data) {
+      msg = String((data as { detail: unknown }).detail);
+    }
     throw new ApiError(res.status, data, msg);
   }
   return data as T;
