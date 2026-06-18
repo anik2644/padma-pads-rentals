@@ -20,10 +20,30 @@ function LoginPage() {
   async function handleLogin({ identifier, password }: { identifier: string; password: string }) {
     setSubmitting(true);
     try {
-      const user =
-        method === "email"
-          ? await mockAuth.loginEmail(identifier, password)
-          : await mockAuth.loginPhone(identifier, password);
+      if (method === "email") {
+        // Real Firebase-backed login through the proxy
+        const { api, ApiError } = await import("@/lib/api-client");
+        try {
+          const res = await api<{ id_token: string; refresh_token: string; expires_in: string }>(
+            "/api/v1/login",
+            { method: "POST", body: { email: identifier, password }, skipAuth: true },
+          );
+          setToken(res.id_token);
+          const user = await mockAuth.loginEmail(identifier, password);
+          setUser({ ...user, email: identifier });
+          toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
+          navigate({ to: "/" });
+          return;
+        } catch (err) {
+          if (err instanceof ApiError) {
+            toast.error(`Login failed: ${err.message}`);
+            return;
+          }
+          throw err;
+        }
+      }
+      // Phone login still uses the mock flow until backend supports it
+      const user = await mockAuth.loginPhone(identifier, password);
       setUser(user);
       setToken(`mock_token_${user.id}`);
       toast.success(`Welcome back, ${user.name.split(" ")[0]}`);

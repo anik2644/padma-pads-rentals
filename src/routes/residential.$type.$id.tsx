@@ -9,19 +9,25 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { getResidentialDetail } from "@/lib/mock-data";
+import { fetchResidentialDetail, type ResidentialType } from "@/lib/residential";
 import { formatBDT, formatDate } from "@/lib/format";
 import { useLanguageStore } from "@/store/languageStore";
-import type { ResidentialType } from "@/lib/residential";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/residential/$type/$id")({
   component: PropertyDetail,
-  loader: ({ params }) => {
-    const detail = getResidentialDetail(params.type as ResidentialType, params.id);
+  loader: async ({ params }) => {
+    const detail = await fetchResidentialDetail(params.type as ResidentialType, params.id);
     if (!detail) throw notFound();
     return detail;
   },
+  errorComponent: ({ error }) => (
+    <div className="mx-auto max-w-md py-24 text-center">
+      <h1 className="text-2xl font-bold">Could not load property</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      <Button asChild className="mt-4"><Link to="/residential">Back to browse</Link></Button>
+    </div>
+  ),
   notFoundComponent: () => (
     <div className="mx-auto max-w-md py-24 text-center">
       <h1 className="text-2xl font-bold">Property not found</h1>
