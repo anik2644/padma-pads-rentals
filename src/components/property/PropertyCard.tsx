@@ -8,7 +8,13 @@ import { formatBDT, formatDate } from "@/lib/format";
 import { useLanguageStore } from "@/store/languageStore";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createFavorite, deleteFavorite, listFavorites } from "@/lib/favorites";
+import {
+  createFavorite,
+  deleteFavorite,
+  FAVORITES_CHANGED_EVENT,
+  listFavorites,
+  notifyFavoritesChanged,
+} from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 
 const TYPE_COLOR: Record<PropertyListItem["type"], string> = {
@@ -25,17 +31,35 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
   const { lang } = useLanguageStore();
   const [saved, setSaved] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const advertisementId = item.advertisementId;
 
   useEffect(() => {
     if (!advertisementId) return;
-    listFavorites({ advertisementId, propertyId: item.id, pageSize: 1 })
-      .then((res) => {
+    let cancelled = false;
+    async function loadFavoriteState() {
+      setFavoriteLoading(true);
+      try {
+        const res = await listFavorites({ advertisementId, propertyId: item.id, pageSize: 1 });
+        if (cancelled) return;
         const favorite = res.items[0];
         setFavoriteId(favorite?.id ?? null);
         setSaved(Boolean(favorite));
-      })
-      .catch(() => undefined);
+      } catch {
+        if (!cancelled) {
+          setFavoriteId(null);
+          setSaved(false);
+        }
+      } finally {
+        if (!cancelled) setFavoriteLoading(false);
+      }
+    }
+    loadFavoriteState();
+    window.addEventListener(FAVORITES_CHANGED_EVENT, loadFavoriteState);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(FAVORITES_CHANGED_EVENT, loadFavoriteState);
+    };
   }, [advertisementId, item.id]);
 
   async function toggleFavorite() {
@@ -48,12 +72,14 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
         await deleteFavorite({ advertisementId });
         setFavoriteId(null);
         setSaved(false);
+        notifyFavoritesChanged();
         toast.success("Removed from saved listings");
         return;
       }
       const favorite = await createFavorite({ advertisementId, propertyId: item.id });
       setFavoriteId(favorite.id);
       setSaved(true);
+      notifyFavoritesChanged();
       toast.success("Saved listing");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update saved listing");
@@ -83,6 +109,7 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
             toggleFavorite();
           }}
           aria-label={t("common.save")}
+          disabled={favoriteLoading}
           className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-transform hover:scale-110"
         >
           <Heart

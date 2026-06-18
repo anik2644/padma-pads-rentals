@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { signOut as firebaseSignOut } from "firebase/auth";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   Bell,
   CheckCircle2,
@@ -33,6 +33,9 @@ import { VerificationComponent } from "@/components/auth/VerificationComponent";
 import { SocialButtons } from "@/components/auth/SocialButtons";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { mockAuth } from "@/lib/mock-auth";
+import { countFavorites, FAVORITES_CHANGED_EVENT } from "@/lib/favorites";
+import { countMessages } from "@/lib/property-messages";
+import { countOwnedResidentialListings } from "@/lib/residential";
 import { useAuthStore, type AuthProvider, type ConnectedCredential } from "@/store/authStore";
 
 export const Route = createFileRoute("/profile")({
@@ -59,11 +62,7 @@ function ProfilePage() {
     <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-6 md:py-10">
       <ProfileHeader />
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Stat label="Saved" value={12} />
-        <Stat label="Enquiries" value={5} />
-        <Stat label="Listings" value={0} />
-      </div>
+      <ProfileStats userId={user.id} />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Row to="/saved" icon={Heart} label="Saved listings" />
@@ -94,6 +93,53 @@ function ProfilePage() {
       >
         <LogOut className="mr-2 h-4 w-4" /> Log out
       </Button>
+    </div>
+  );
+}
+
+function ProfileStats({ userId }: { userId: string }) {
+  const [stats, setStats] = useState({
+    saved: 0,
+    enquiries: 0,
+    listings: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStats() {
+      setLoading(true);
+      const [saved, sentMessages, receivedMessages, listings] = await Promise.all([
+        countFavorites().catch(() => 0),
+        countMessages({ senderId: userId }).catch(() => 0),
+        countMessages({ receiverId: userId }).catch(() => 0),
+        countOwnedResidentialListings(userId).catch(() => 0),
+      ]);
+
+      if (!cancelled) {
+        setStats({
+          saved,
+          enquiries: sentMessages + receivedMessages,
+          listings,
+        });
+        setLoading(false);
+      }
+    }
+
+    loadStats();
+    window.addEventListener(FAVORITES_CHANGED_EVENT, loadStats);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(FAVORITES_CHANGED_EVENT, loadStats);
+    };
+  }, [userId]);
+
+  return (
+    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <Stat label="Saved" value={loading ? "..." : stats.saved} />
+      <Stat label="Enquiries" value={loading ? "..." : stats.enquiries} />
+      <Stat label="Listings" value={stats.listings} />
     </div>
   );
 }
@@ -653,7 +699,7 @@ function SignedOut() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 text-center shadow-card">
       <p className="text-2xl font-bold text-primary">{value}</p>

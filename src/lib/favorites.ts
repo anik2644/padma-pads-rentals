@@ -1,5 +1,7 @@
 import { api } from "@/lib/api-client";
 
+export const FAVORITES_CHANGED_EVENT = "homebee:favorites-changed";
+
 export interface Favorite {
   id: string;
   userId: string;
@@ -31,6 +33,10 @@ export function listFavorites(query: Record<string, unknown> = {}) {
   });
 }
 
+export function countFavorites(query: Record<string, unknown> = {}) {
+  return listFavorites({ page: 1, pageSize: 1, ...query }).then((res) => res.meta.totalItems);
+}
+
 export function createFavorite(body: { advertisementId: string; propertyId: string }) {
   return api<Favorite>("/api/v1/favorites", { method: "POST", body });
 }
@@ -44,4 +50,8 @@ export function updateFavorite(
 
 export function deleteFavorite(body: { advertisementId: string }) {
   return api<void>("/api/v1/favorites", { method: "DELETE", body });
+}
+
+export function notifyFavoritesChanged() {
+  window.dispatchEvent(new Event(FAVORITES_CHANGED_EVENT));
 }

@@ -40,6 +40,10 @@ export function listMessages(query: Record<string, unknown> = {}) {
   });
 }
 
+export function countMessages(query: Record<string, unknown> = {}) {
+  return listMessages({ page: 1, pageSize: 1, ...query }).then((res) => res.meta.totalItems);
+}
+
 export function createMessage(body: {
   advertisementId: string;
   propertyId: string;

@@ -15,7 +15,7 @@ import { formatBDT, formatDate } from "@/lib/format";
 import { useAuthStore } from "@/store/authStore";
 import { VisitRequestPanel } from "@/components/property/VisitRequestPanel";
 import { trackPropertyView } from "@/lib/property-view-tracking";
-import { createFavorite, deleteFavorite, listFavorites } from "@/lib/favorites";
+import { createFavorite, deleteFavorite, listFavorites, notifyFavoritesChanged } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/commercial/$id")({
@@ -77,12 +77,14 @@ function CommercialDetail() {
         await deleteFavorite({ advertisementId });
         setFavoriteId(null);
         setSaved(false);
+        notifyFavoritesChanged();
         toast.success("Removed from saved listings");
         return;
       }
       const favorite = await createFavorite({ advertisementId, propertyId: item.id });
       setFavoriteId(favorite.id);
       setSaved(true);
+      notifyFavoritesChanged();
       toast.success("Saved listing");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update saved listing");

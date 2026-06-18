@@ -200,6 +200,21 @@ export async function searchResidential(
   return { items, total };
 }
 
+export async function countOwnedResidentialListings(ownerId: string): Promise<number> {
+  const results = await Promise.allSettled(
+    RESIDENTIAL_TYPES.map((type) =>
+      api<RawListResponse>(`/api/v1/properties/residential/${TYPE_TO_PATH[type]}`, {
+        query: { ownerId, page: 1, pageSize: 1 },
+      }),
+    ),
+  );
+
+  return results.reduce((total, result) => {
+    if (result.status !== "fulfilled") return total;
+    return total + (result.value.meta?.totalItems ?? result.value.items.length);
+  }, 0);
+}
+
 export interface PropertyDetail {
   id: string;
   advertisementId: string;

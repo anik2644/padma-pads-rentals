@@ -4,7 +4,13 @@ import { Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { deleteFavorite, listFavorites, type Favorite } from "@/lib/favorites";
+import {
+  deleteFavorite,
+  FAVORITES_CHANGED_EVENT,
+  listFavorites,
+  notifyFavoritesChanged,
+  type Favorite,
+} from "@/lib/favorites";
 
 export const Route = createFileRoute("/saved")({
   head: () => ({ meta: [{ title: "Saved Listings — HomeBee" }] }),
@@ -13,6 +19,7 @@ export const Route = createFileRoute("/saved")({
 
 function SavedPage() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [totalFavorites, setTotalFavorites] = useState(0);
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
@@ -20,6 +27,7 @@ function SavedPage() {
     try {
       const res = await listFavorites({ pageSize: 50 });
       setFavorites(res.items);
+      setTotalFavorites(res.meta.totalItems);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not load saved listings");
     } finally {
@@ -29,6 +37,8 @@ function SavedPage() {
 
   useEffect(() => {
     refresh();
+    window.addEventListener(FAVORITES_CHANGED_EVENT, refresh);
+    return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, refresh);
   }, []);
 
   async function removeFavorite(favorite: Favorite) {
@@ -37,6 +47,7 @@ function SavedPage() {
         advertisementId: favorite.advertisementId,
       });
       await refresh();
+      notifyFavoritesChanged();
       toast.success("Removed from saved listings");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not remove saved listing");
@@ -52,7 +63,7 @@ function SavedPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Saved listings</h1>
           <p className="text-sm text-muted-foreground">
-            {loading ? "Loading..." : `${favorites.length} properties saved`}
+            {loading ? "Loading..." : `${totalFavorites} properties saved`}
           </p>
         </div>
       </header>
