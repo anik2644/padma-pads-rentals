@@ -30,9 +30,9 @@ export function Navbar() {
           {user && (
             <Link
               to="/add-property"
-              className="hidden h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:inline-flex"
+              className="hidden h-9 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-md ring-2 ring-primary/20 hover:bg-primary/90 hover:shadow-lg sm:inline-flex"
             >
-              <Plus className="h-4 w-4" /> List Property
+              <Plus className="h-4 w-4" /> Add
             </Link>
           )}
           {user ? (

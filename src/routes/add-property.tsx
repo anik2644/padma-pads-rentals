@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import type { Marker as LeafletMarker } from "leaflet";
 import {
   Building2,
   Check,
@@ -368,6 +370,98 @@ function NullableBoolField({
   );
 }
 
+// ─── Map Location Picker ──────────────────────────────────────────────────────
+
+function MapClickHandler({
+  onChange,
+}: {
+  onChange: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(e) {
+      onChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+function MapLocationPicker({
+  latStr,
+  lngStr,
+  onChange,
+}: {
+  latStr: string;
+  lngStr: string;
+  onChange: (lat: string, lng: string) => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const markerRef = useRef<LeafletMarker>(null);
+
+  useEffect(() => {
+    // Fix Leaflet's default icon broken in Vite/SSR builds
+    import("leaflet").then((L) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (L.default.Icon.Default.prototype as any)._getIconUrl;
+      L.default.Icon.Default.mergeOptions({
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        iconRetinaUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        shadowUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+      setMounted(true);
+    });
+  }, []);
+
+  const lat = parseFloat(latStr) || 23.8103;
+  const lng = parseFloat(lngStr) || 90.4125;
+
+  const handleChange = (newLat: number, newLng: number) => {
+    onChange(newLat.toFixed(6), newLng.toFixed(6));
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-xl border border-border" style={{ height: 280 }}>
+        {mounted ? (
+          <MapContainer
+            center={[lat, lng]}
+            zoom={14}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+            <MapClickHandler onChange={handleChange} />
+            <Marker
+              ref={markerRef}
+              position={[lat, lng]}
+              draggable
+              eventHandlers={{
+                dragend() {
+                  const latlng = markerRef.current?.getLatLng();
+                  if (latlng) handleChange(latlng.lat, latlng.lng);
+                },
+              }}
+            />
+          </MapContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
+            Loading map…
+          </div>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Click on the map or drag the marker to set the exact location.{" "}
+        <span className="font-mono">
+          {parseFloat(latStr).toFixed(6)}, {parseFloat(lngStr).toFixed(6)}
+        </span>
+      </p>
+    </div>
+  );
+}
+
 function PageActions({
   onBack,
   onNext,
@@ -587,24 +681,13 @@ function Page1({
               onChange={(e) => update({ fullAddress: e.target.value })}
             />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="GPS Latitude" hint="Default: Dhaka">
-              <Input
-                type="number"
-                step="0.0001"
-                value={data.latitude}
-                onChange={(e) => update({ latitude: e.target.value })}
-              />
-            </Field>
-            <Field label="GPS Longitude" hint="Default: Dhaka">
-              <Input
-                type="number"
-                step="0.0001"
-                value={data.longitude}
-                onChange={(e) => update({ longitude: e.target.value })}
-              />
-            </Field>
-          </div>
+          <Field label="Pin Location on Map">
+            <MapLocationPicker
+              latStr={data.latitude}
+              lngStr={data.longitude}
+              onChange={(lat, lng) => update({ latitude: lat, longitude: lng })}
+            />
+          </Field>
           <Field label="Nearby Landmark">
             <Input
               placeholder="e.g. Near Mirpur 10 Metro"
