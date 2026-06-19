@@ -18,6 +18,7 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as CommercialRouteImport } from './routes/commercial'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AddPropertyRouteImport } from './routes/add-property'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as RecreationalIdRouteImport } from './routes/recreational.$id'
@@ -73,6 +74,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AddPropertyRoute = AddPropertyRouteImport.update({
+  id: '/add-property',
+  path: '/add-property',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -121,6 +127,7 @@ const ApiPublicBackendSplatRoute = ApiPublicBackendSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/add-property': typeof AddPropertyRoute
   '/auth': typeof AuthRouteWithChildren
   '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/add-property': typeof AddPropertyRoute
   '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
   '/notifications': typeof NotificationsRoute
@@ -161,6 +169,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/add-property': typeof AddPropertyRoute
   '/auth': typeof AuthRouteWithChildren
   '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/add-property'
     | '/auth'
     | '/commercial'
     | '/messages'
@@ -203,6 +213,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/add-property'
     | '/commercial'
     | '/messages'
     | '/notifications'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/add-property'
     | '/auth'
     | '/commercial'
     | '/messages'
@@ -243,6 +255,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AddPropertyRoute: typeof AddPropertyRoute
   AuthRoute: typeof AuthRouteWithChildren
   CommercialRoute: typeof CommercialRouteWithChildren
   MessagesRoute: typeof MessagesRoute
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/add-property': {
+      id: '/add-property'
+      path: '/add-property'
+      fullPath: '/add-property'
+      preLoaderRoute: typeof AddPropertyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -440,6 +460,7 @@ const ResidentialRouteWithChildren = ResidentialRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AddPropertyRoute: AddPropertyRoute,
   AuthRoute: AuthRouteWithChildren,
   CommercialRoute: CommercialRouteWithChildren,
   MessagesRoute: MessagesRoute,

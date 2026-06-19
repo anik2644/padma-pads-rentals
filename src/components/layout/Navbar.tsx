@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, UserCircle } from "lucide-react";
+import { Bell, Plus, UserCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { HomeBeeLogo } from "@/components/brand/HomeBeeLogo";
 import { ThemeToggle, LanguageToggle } from "@/components/common/Toggles";
@@ -27,6 +27,14 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <LanguageToggle className="hidden sm:inline-flex" />
           <ThemeToggle />
+          {user && (
+            <Link
+              to="/add-property"
+              className="hidden h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:inline-flex"
+            >
+              <Plus className="h-4 w-4" /> List Property
+            </Link>
+          )}
           {user ? (
             <>
               <Link
