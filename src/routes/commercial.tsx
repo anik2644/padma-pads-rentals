@@ -1,7 +1,8 @@
 import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { Building2, MapPin, Maximize2, Phone, Search, SlidersHorizontal, Save } from "lucide-react";
+import { MapPin, Maximize2, Phone, Search, SlidersHorizontal, Save } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -27,14 +28,6 @@ export const Route = createFileRoute("/commercial")({
 
 const DIVISIONS = ["Dhaka", "Chattogram", "Khulna", "Rajshahi", "Sylhet", "Barishal", "Rangpur", "Mymensingh"];
 
-const TYPE_LABEL: Record<CommercialType, string> = {
-  offices:     "Office Space",
-  shops:       "Shop / Retail",
-  showrooms:   "Showroom",
-  warehouses:  "Warehouse",
-  restaurants: "Restaurant Space",
-};
-
 interface CommercialFilters {
   types: CommercialType[];
   division?: string;
@@ -52,6 +45,7 @@ interface CommercialFilters {
 const DEFAULT_FILTERS: CommercialFilters = { types: [...COMMERCIAL_TYPES] };
 
 function CommercialPage() {
+  const { t } = useTranslation();
   const matchRoute = useMatchRoute();
   const [filters, setFilters] = useState<CommercialFilters>(DEFAULT_FILTERS);
   const [applied, setApplied] = useState<CommercialFilters>(DEFAULT_FILTERS);
@@ -81,8 +75,8 @@ function CommercialPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-10">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Commercial Properties</h1>
-        <p className="mt-1 text-muted-foreground">Offices, shops, showrooms, warehouses & restaurant spaces across Bangladesh.</p>
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{t("commercial.title")}</h1>
+        <p className="mt-1 text-muted-foreground">{t("commercial.subtitle")}</p>
       </header>
 
       {/* Search Panel */}
@@ -99,7 +93,7 @@ function CommercialPage() {
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-surface text-muted-foreground hover:text-foreground",
               )}>
-              {TYPE_LABEL[type]}
+              {t(`commercial.types.${type}`)}
             </button>
           ))}
         </div>
@@ -108,20 +102,20 @@ function CommercialPage() {
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Select value={filters.division ?? ""} onValueChange={(v) =>
             setFilters((f) => ({ ...f, division: v === "__all" ? undefined : v }))}>
-            <SelectTrigger className="h-11"><SelectValue placeholder="Division" /></SelectTrigger>
+            <SelectTrigger className="h-11"><SelectValue placeholder={t("commercial.fields.division")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all">All Divisions</SelectItem>
+              <SelectItem value="__all">{t("commercial.fields.allDivisions")}</SelectItem>
               {DIVISIONS.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Input className="h-11" placeholder="City" value={filters.city ?? ""}
+          <Input className="h-11" placeholder={t("commercial.fields.city")} value={filters.city ?? ""}
             onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value || undefined }))} />
-          <Input className="h-11" placeholder="Area / Locality" value={filters.area ?? ""}
+          <Input className="h-11" placeholder={t("commercial.fields.area")} value={filters.area ?? ""}
             onChange={(e) => setFilters((f) => ({ ...f, area: e.target.value || undefined }))} />
           <div className="flex gap-2">
-            <Input className="h-11" type="number" placeholder="Min ৳" value={filters.minRent ?? ""}
+            <Input className="h-11" type="number" placeholder={t("commercial.fields.minRent")} value={filters.minRent ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, minRent: e.target.value ? Number(e.target.value) : undefined }))} />
-            <Input className="h-11" type="number" placeholder="Max ৳" value={filters.maxRent ?? ""}
+            <Input className="h-11" type="number" placeholder={t("commercial.fields.maxRent")} value={filters.maxRent ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, maxRent: e.target.value ? Number(e.target.value) : undefined }))} />
           </div>
         </div>
@@ -129,10 +123,10 @@ function CommercialPage() {
         {/* Actions */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <Button type="submit" size="lg" className="gap-2">
-            <Search className="h-4 w-4" /> Search
+            <Search className="h-4 w-4" /> {t("common.search")}
           </Button>
           <CommercialAdvancedFilters filters={filters} setFilters={setFilters} />
-          <Button type="button" variant="ghost" onClick={reset}>Reset</Button>
+          <Button type="button" variant="ghost" onClick={reset}>{t("common.reset")}</Button>
         </div>
       </form>
 
@@ -144,7 +138,7 @@ function CommercialPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
           >
-            <p className="mt-6 text-sm text-muted-foreground">{items.length} properties found</p>
+            <p className="mt-6 text-sm text-muted-foreground">{t("commercial.results", { count: items.length })}</p>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((p, i) => (
                 <motion.article
@@ -157,7 +151,7 @@ function CommercialPage() {
                   <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                     <img src={p.coverImage} alt={p.name} loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
-                    <Badge className="absolute left-3 top-3 capitalize">{TYPE_LABEL[p.type]}</Badge>
+                    <Badge className="absolute left-3 top-3 capitalize">{t(`commercial.types.${p.type}`)}</Badge>
                   </div>
                   <div className="flex flex-col gap-3 px-5 pb-5 pt-4">
                     <div>
@@ -168,10 +162,10 @@ function CommercialPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="flex items-center gap-1 text-muted-foreground">
-                        <Maximize2 className="h-3.5 w-3.5" /> {p.sizeSqft} sqft
+                        <Maximize2 className="h-3.5 w-3.5" /> {p.sizeSqft} {t("commercial.sizeUnit")}
                       </span>
                       <span className="font-bold text-primary">
-                        {formatBDT(p.rent)}<span className="text-xs text-muted-foreground">/mo</span>
+                        {formatBDT(p.rent)}<span className="text-xs text-muted-foreground">{t("commercial.perMonth")}</span>
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1">
@@ -179,12 +173,12 @@ function CommercialPage() {
                     </div>
                     <div className="mt-auto flex gap-2 pt-1">
                       <Button size="sm" className="flex-1" asChild>
-                        <Link to="/commercial/$id" params={{ id: p.id }}>View Details</Link>
+                        <Link to="/commercial/$id" params={{ id: p.id }}>{t("common.viewDetails")}</Link>
                       </Button>
-                      <Button size="sm" variant="outline" aria-label="Save" className="shrink-0 px-3">
+                      <Button size="sm" variant="outline" aria-label={t("common.save")} className="shrink-0 px-3">
                         <Save className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="outline" aria-label="Call" className="shrink-0 px-3">
+                      <Button size="sm" variant="outline" aria-label={t("common.quickCall")} className="shrink-0 px-3">
                         <Phone className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -202,12 +196,13 @@ function CommercialPage() {
 function CommercialAdvancedFilters({
   filters, setFilters,
 }: { filters: CommercialFilters; setFilters: React.Dispatch<React.SetStateAction<CommercialFilters>> }) {
+  const { t } = useTranslation();
   const toggles: Array<{ key: keyof CommercialFilters; label: string }> = [
-    { key: "lift",      label: "Lift / Elevator" },
-    { key: "parking",   label: "Parking" },
-    { key: "generator", label: "Generator / Backup Power" },
-    { key: "furnished", label: "Furnished" },
-    { key: "internet",  label: "Internet Ready" },
+    { key: "lift",      label: t("commercial.fields.lift") },
+    { key: "parking",   label: t("commercial.fields.parking") },
+    { key: "generator", label: t("commercial.fields.generator") },
+    { key: "furnished", label: t("commercial.fields.furnished") },
+    { key: "internet",  label: t("commercial.fields.internet") },
   ];
   const clearAdv = () => setFilters((f) => ({
     ...f, lift: undefined, parking: undefined, generator: undefined,
@@ -218,11 +213,11 @@ function CommercialAdvancedFilters({
     <Sheet>
       <SheetTrigger asChild>
         <Button type="button" variant="outline" size="lg" className="gap-2">
-          <SlidersHorizontal className="h-4 w-4" /> Advanced Filters
+          <SlidersHorizontal className="h-4 w-4" /> {t("common.advancedFilters")}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader><SheetTitle>Advanced Filters</SheetTitle></SheetHeader>
+        <SheetHeader><SheetTitle>{t("common.advancedFilters")}</SheetTitle></SheetHeader>
         <div className="space-y-3 p-4">
           {toggles.map((tg) => (
             <div key={tg.key as string}
@@ -234,7 +229,7 @@ function CommercialAdvancedFilters({
           ))}
         </div>
         <SheetFooter className="p-4">
-          <Button type="button" variant="ghost" onClick={clearAdv}>Clear</Button>
+          <Button type="button" variant="ghost" onClick={clearAdv}>{t("actions.clear")}</Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

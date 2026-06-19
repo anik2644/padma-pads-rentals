@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { HomeBeeLogo } from "@/components/brand/HomeBeeLogo";
 import { LanguageToggle, ThemeToggle } from "@/components/common/Toggles";
 
@@ -8,6 +9,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthLayout() {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const isForgot = pathname.endsWith("/forgot");
 
@@ -33,14 +35,14 @@ function AuthLayout() {
                 className="rounded-lg px-3 py-2 text-center text-muted-foreground transition hover:text-foreground"
                 activeProps={{ className: "bg-background shadow-sm text-foreground" }}
               >
-                Log in
+                {t("common.login")}
               </Link>
               <Link
                 to="/auth/signup"
                 className="rounded-lg px-3 py-2 text-center text-muted-foreground transition hover:text-foreground"
                 activeProps={{ className: "bg-background shadow-sm text-foreground" }}
               >
-                Sign up
+                {t("common.signup")}
               </Link>
             </div>
           )}

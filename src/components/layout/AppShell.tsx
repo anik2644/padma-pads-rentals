@@ -10,8 +10,10 @@ import { resolveStoreUser } from "@/lib/firestore-user";
 import { firebaseUserToStoreUser } from "@/lib/firebase-auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
+import { useTranslation } from "react-i18next";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const { lang } = useLanguageStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -73,7 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (!authReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-        Loading...
+        {t("common.loading")}
         <Toaster position="top-right" />
       </div>
     );

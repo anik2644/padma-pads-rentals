@@ -64,7 +64,7 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
 
   async function toggleFavorite() {
     if (!advertisementId) {
-      toast.error("This listing cannot be saved yet.");
+      toast.error(t("actions.cannotSave"));
       return;
     }
     try {
@@ -73,14 +73,14 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
         setFavoriteId(null);
         setSaved(false);
         notifyFavoritesChanged();
-        toast.success("Removed from saved listings");
+        toast.success(t("actions.removedSaved"));
         return;
       }
       const favorite = await createFavorite({ advertisementId, propertyId: item.id });
       setFavoriteId(favorite.id);
       setSaved(true);
       notifyFavoritesChanged();
-      toast.success("Saved listing");
+      toast.success(t("actions.savedListing"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not update saved listing");
     }

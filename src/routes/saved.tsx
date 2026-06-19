@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +12,7 @@ import {
   notifyFavoritesChanged,
   type Favorite,
 } from "@/lib/favorites";
+import { useLanguageStore } from "@/store/languageStore";
 
 export const Route = createFileRoute("/saved")({
   head: () => ({ meta: [{ title: "Saved Listings — HomeBee" }] }),
@@ -18,6 +20,8 @@ export const Route = createFileRoute("/saved")({
 });
 
 function SavedPage() {
+  const { t } = useTranslation();
+  const { lang } = useLanguageStore();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [totalFavorites, setTotalFavorites] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -29,7 +33,7 @@ function SavedPage() {
       setFavorites(res.items);
       setTotalFavorites(res.meta.totalItems);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not load saved listings");
+      toast.error(err instanceof Error ? err.message : t("saved.loadError"));
     } finally {
       setLoading(false);
     }
@@ -48,9 +52,9 @@ function SavedPage() {
       });
       await refresh();
       notifyFavoritesChanged();
-      toast.success("Removed from saved listings");
+      toast.success(t("actions.removedSaved"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not remove saved listing");
+      toast.error(err instanceof Error ? err.message : t("saved.removeError"));
     }
   }
 
@@ -61,17 +65,17 @@ function SavedPage() {
           <Heart className="h-5 w-5 fill-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Saved listings</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("saved.title")}</h1>
           <p className="text-sm text-muted-foreground">
-            {loading ? "Loading..." : `${totalFavorites} properties saved`}
+            {loading ? t("common.loading") : t("saved.count", { count: totalFavorites })}
           </p>
         </div>
       </header>
 
       {!loading && favorites.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border p-10 text-center">
-          <p className="text-muted-foreground">No saved properties yet.</p>
-          <Button asChild className="mt-4"><Link to="/residential">Browse properties</Link></Button>
+          <p className="text-muted-foreground">{t("saved.empty")}</p>
+          <Button asChild className="mt-4"><Link to="/residential">{t("saved.browse")}</Link></Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -79,13 +83,13 @@ function SavedPage() {
             <article key={favorite.id} className="rounded-2xl border border-border bg-card p-4 shadow-card">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <Badge variant="outline">Saved</Badge>
-                  <h2 className="mt-3 font-semibold">Property {favorite.propertyId}</h2>
+                  <Badge variant="outline">{t("saved.badge")}</Badge>
+                  <h2 className="mt-3 font-semibold">{t("saved.property", { id: favorite.propertyId })}</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Advertisement {favorite.advertisementId}
+                    {t("saved.advertisement", { id: favorite.advertisementId })}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Saved {formatDateTime(favorite.audit.createdAt)}
+                    {t("saved.savedAt", { date: formatDateTime(favorite.audit.createdAt, lang) })}
                   </p>
                 </div>
                 <Button
@@ -105,8 +109,8 @@ function SavedPage() {
   );
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
+function formatDateTime(value: string, lang: "en" | "bn") {
+  return new Intl.DateTimeFormat(lang, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));

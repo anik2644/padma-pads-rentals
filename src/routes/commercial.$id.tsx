@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { getCommercialDetail } from "@/lib/mock-data";
 import { formatBDT, formatDate } from "@/lib/format";
 import { useAuthStore } from "@/store/authStore";
@@ -26,24 +27,23 @@ export const Route = createFileRoute("/commercial/$id")({
     if (!detail) throw notFound();
     return detail;
   },
-  notFoundComponent: () => (
-    <div className="mx-auto max-w-md py-24 text-center">
-      <h1 className="text-2xl font-bold">Property not found</h1>
-      <Button asChild className="mt-4">
-        <Link to="/commercial">Back to browse</Link>
-      </Button>
-    </div>
-  ),
+  notFoundComponent: CommercialNotFound,
 });
 
-const TYPE_LABEL: Record<string, string> = {
-  offices: "Office Space",
-  shops: "Shop / Retail",
-  showrooms: "Showroom",
-  warehouses: "Warehouse",
-};
+function CommercialNotFound() {
+  const { t } = useTranslation();
+  return (
+    <div className="mx-auto max-w-md py-24 text-center">
+      <h1 className="text-2xl font-bold">{t("detail.propertyNotFound")}</h1>
+      <Button asChild className="mt-4">
+        <Link to="/commercial">{t("actions.backToBrowse")}</Link>
+      </Button>
+    </div>
+  );
+}
 
 function CommercialDetail() {
+  const { t } = useTranslation();
   const item = Route.useLoaderData();
   const user = useAuthStore((s) => s.user);
   const [saved, setSaved] = useState(false);
@@ -78,16 +78,16 @@ function CommercialDetail() {
         setFavoriteId(null);
         setSaved(false);
         notifyFavoritesChanged();
-        toast.success("Removed from saved listings");
+        toast.success(t("actions.removedSaved"));
         return;
       }
       const favorite = await createFavorite({ advertisementId, propertyId: item.id });
       setFavoriteId(favorite.id);
       setSaved(true);
       notifyFavoritesChanged();
-      toast.success("Saved listing");
+      toast.success(t("actions.savedListing"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update saved listing");
+      toast.error(err instanceof Error ? err.message : t("actions.updateSavedError"));
     }
   }
 
@@ -97,7 +97,7 @@ function CommercialDetail() {
         to="/commercial"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to commercial
+        <ArrowLeft className="h-4 w-4" /> {t("detail.backCommercial")}
       </Link>
 
       {/* Gallery */}
@@ -108,14 +108,14 @@ function CommercialDetail() {
             <button
               onClick={toggleFavorite}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur transition hover:scale-105"
-              aria-label="Save"
+              aria-label={t("common.save")}
             >
               <Heart className={cn("h-4 w-4", saved ? "fill-primary text-primary" : "")} />
             </button>
             <button
-              onClick={() => toast.success("Link copied")}
+              onClick={() => toast.success(t("actions.linkCopied"))}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur transition hover:scale-105"
-              aria-label="Share"
+              aria-label={t("actions.share")}
             >
               <Share2 className="h-4 w-4" />
             </button>
@@ -143,7 +143,7 @@ function CommercialDetail() {
           {/* Title & price */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <Badge className="mb-2 capitalize">{TYPE_LABEL[item.type] ?? item.type}</Badge>
+              <Badge className="mb-2 capitalize">{t(`commercial.types.${item.type}`, { defaultValue: item.type })}</Badge>
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{item.name}</h1>
               <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
                 <MapPin className="h-4 w-4" /> {item.area}, {item.city}, {item.division}
@@ -151,28 +151,28 @@ function CommercialDetail() {
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-primary">{formatBDT(item.rent)}</p>
-              <p className="text-sm text-muted-foreground">/month</p>
-              {item.negotiable && <Badge variant="secondary" className="mt-1">Negotiable</Badge>}
+              <p className="text-sm text-muted-foreground">{t("commercial.perMonth")}</p>
+              {item.negotiable && <Badge variant="secondary" className="mt-1">{t("detail.negotiable")}</Badge>}
             </div>
           </div>
 
           {/* Stat row */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat icon={Maximize2} label="Size" value={`${item.sizeSqft} sqft`} />
-            <Stat icon={Layers} label="Floor" value={`${item.floorNumber}th`} />
-            <Stat icon={Building2} label="Rooms" value={String(item.rooms)} />
-            <Stat icon={Coffee} label="Cabins" value={String(item.cabins)} />
+            <Stat icon={Maximize2} label={t("detail.size")} value={`${item.sizeSqft} ${t("commercial.sizeUnit")}`} />
+            <Stat icon={Layers} label={t("detail.floor")} value={`${item.floorNumber}th`} />
+            <Stat icon={Building2} label={t("detail.rooms")} value={String(item.rooms)} />
+            <Stat icon={Coffee} label={t("detail.cabins")} value={String(item.cabins)} />
           </div>
 
           {/* Description */}
           <section>
-            <h2 className="mb-2 text-lg font-semibold">About this property</h2>
+            <h2 className="mb-2 text-lg font-semibold">{t("detail.about")}</h2>
             <p className="leading-relaxed text-muted-foreground">{item.description}</p>
           </section>
 
           {/* Features */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Property Features</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("detail.features")}</h2>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {[
                 { label: "Reception Area", ok: item.hasReception },
@@ -203,32 +203,32 @@ function CommercialDetail() {
 
           {/* Rental Info */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Rental Information</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("detail.rentalInfo")}</h2>
             <div className="rounded-2xl border border-border bg-surface p-4">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
-                <InfoRow label="Monthly Rent" value={formatBDT(item.rent)} />
-                <InfoRow label="Advance" value={formatBDT(item.advance)} />
-                <InfoRow label="Min. Contract" value={`${item.minimumContract} months`} />
-                <InfoRow label="Available From" value={formatDate(item.availableFrom)} />
-                <InfoRow label="Negotiable" value={item.negotiable ? "Yes" : "No"} />
-                {item.remarks && <InfoRow label="Remarks" value={item.remarks} />}
+                <InfoRow label={t("detail.monthlyRent")} value={formatBDT(item.rent)} />
+                <InfoRow label={t("detail.advance")} value={formatBDT(item.advance)} />
+                <InfoRow label={t("detail.minContract")} value={`${item.minimumContract} months`} />
+                <InfoRow label={t("detail.availableFrom")} value={formatDate(item.availableFrom)} />
+                <InfoRow label={t("detail.negotiable")} value={item.negotiable ? t("actions.yes") : t("actions.no")} />
+                {item.remarks && <InfoRow label={t("detail.remarks")} value={item.remarks} />}
               </dl>
             </div>
           </section>
 
           {/* Rules */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Rules & Terms</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("detail.rulesTerms")}</h2>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>• Business type allowed: <span className="text-foreground font-medium">{item.rules.businessTypeAllowed}</span></p>
-              <p>• 24/7 access: <span className="text-foreground font-medium">{item.rules.access247 ? "Yes" : "No"}</span></p>
-              <p>• Renovation allowed: <span className="text-foreground font-medium">{item.rules.renovationAllowed ? "Yes" : "No"}</span></p>
+              <p>• {t("detail.businessTypeAllowed")}: <span className="text-foreground font-medium">{item.rules.businessTypeAllowed}</span></p>
+              <p>• {t("detail.access247")}: <span className="text-foreground font-medium">{item.rules.access247 ? t("actions.yes") : t("actions.no")}</span></p>
+              <p>• {t("detail.renovationAllowed")}: <span className="text-foreground font-medium">{item.rules.renovationAllowed ? t("actions.yes") : t("actions.no")}</span></p>
             </div>
           </section>
 
           {/* Map */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Location</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("detail.location")}</h2>
             <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-border">
               <iframe
                 title="map"
@@ -251,19 +251,19 @@ function CommercialDetail() {
                   {item.contact.name}
                   {item.contact.verified && <Shield className="h-4 w-4 text-secondary" />}
                 </p>
-                <p className="text-xs text-muted-foreground">Member since {item.contact.memberSince}</p>
+                <p className="text-xs text-muted-foreground">{t("detail.memberSince", { year: item.contact.memberSince })}</p>
               </div>
             </div>
             <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" /> Responds {item.contact.responseTime}
+              <Clock className="h-3.5 w-3.5" /> {t("detail.responds", { time: item.contact.responseTime })}
             </div>
             <Separator className="my-4" />
             <div className="mb-4 flex items-center gap-2 text-sm">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              Available from <span className="font-semibold">{formatDate(item.availableFrom)}</span>
+              {t("detail.availableFrom")} <span className="font-semibold">{formatDate(item.availableFrom)}</span>
             </div>
             <div className="space-y-2">
-              <Button className="w-full gap-2" onClick={() => toast.success("Calling owner...")}>
+              <Button className="w-full gap-2" onClick={() => toast.success(t("detail.callingOwner"))}>
                 <Phone className="h-4 w-4" /> {item.contact.phone}
               </Button>
               <Button variant="outline" className="w-full gap-2" asChild>
@@ -279,15 +279,15 @@ function CommercialDetail() {
                     avatar: item.contact.name.slice(0, 2).toUpperCase(),
                   }}
                 >
-                  <MessageCircle className="h-4 w-4" /> Message owner
+                  <MessageCircle className="h-4 w-4" /> {t("detail.messageOwner")}
                 </Link>
               </Button>
-              <Button variant="outline" className="w-full gap-2" onClick={() => toast.success("Visit request sent!")}>
-                <CalendarDays className="h-4 w-4" /> Schedule Visit
+              <Button variant="outline" className="w-full gap-2" onClick={() => toast.success(t("detail.visitSent"))}>
+                <CalendarDays className="h-4 w-4" /> {t("detail.scheduleVisit")}
               </Button>
             </div>
             <p className="mt-4 text-center text-[11px] text-muted-foreground">
-              Never pay before viewing. Report suspicious listings.
+              {t("detail.safety")}
             </p>
           </div>
           <VisitRequestPanel

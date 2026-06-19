@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bell } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { MOCK_NOTIFICATIONS } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -9,13 +10,14 @@ export const Route = createFileRoute("/notifications")({
 });
 
 function NotificationsPage() {
+  const { t } = useTranslation();
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6 md:py-10">
       <header className="mb-6 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Bell className="h-5 w-5" /></div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
-          <p className="text-sm text-muted-foreground">Stay updated on listings and messages</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("notifications.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("notifications.subtitle")}</p>
         </div>
       </header>
       <ul className="space-y-2">

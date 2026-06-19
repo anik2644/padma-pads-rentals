@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   onProvider: () => void;
@@ -7,7 +8,7 @@ interface Props {
 }
 
 export function SocialButtons({ onProvider, disabled, mode = "login" }: Props) {
-  const verb = mode === "attach" ? "Attach" : "Continue";
+  const { t } = useTranslation();
   return (
     <div className="grid gap-2">
       <Button
@@ -17,7 +18,7 @@ export function SocialButtons({ onProvider, disabled, mode = "login" }: Props) {
         onClick={onProvider}
         disabled={disabled}
       >
-        <GoogleIcon /> {verb} with Google
+        <GoogleIcon /> {t(mode === "attach" ? "auth.social.attachGoogle" : "auth.social.continueGoogle")}
       </Button>
     </div>
   );

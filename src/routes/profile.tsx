@@ -21,6 +21,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const signOut = useAuthStore((s) => s.signOut);
   const navigate = useNavigate();
@@ -54,7 +56,7 @@ function ProfilePage() {
     const auth = getFirebaseAuth();
     if (auth) await firebaseSignOut(auth);
     signOut();
-    toast.success("Logged out");
+    toast.success(t("profile.loggedOut"));
     navigate({ to: "/auth/login" });
   }
 
@@ -65,22 +67,22 @@ function ProfilePage() {
       <ProfileStats userId={user.id} />
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Row to="/saved" icon={Heart} label="Saved listings" />
-        <Row to="/messages" icon={MessageCircle} label="Messages" />
-        <Row to="/notifications" icon={Bell} label="Notifications" />
+        <Row to="/saved" icon={Heart} label={t("profile.savedListings")} />
+        <Row to="/messages" icon={MessageCircle} label={t("nav.messages")} />
+        <Row to="/notifications" icon={Bell} label={t("profile.notifications")} />
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_1fr]">
         <section>
-          <SectionHeader title="Password" sub="Change the password used to log into HomeBee." />
+          <SectionHeader title={t("profile.password")} sub={t("profile.passwordSub")} />
           <ChangePassword />
         </section>
       </div>
 
       <section className="mt-10">
         <SectionHeader
-          title="Connected accounts"
-          sub="At least one active login method is required."
+          title={t("profile.connected")}
+          sub={t("profile.connectedSub")}
         />
         <ConnectedAccounts />
       </section>
@@ -91,13 +93,14 @@ function ProfilePage() {
         className="text-destructive hover:text-destructive"
         onClick={handleLogout}
       >
-        <LogOut className="mr-2 h-4 w-4" /> Log out
+        <LogOut className="mr-2 h-4 w-4" /> {t("profile.logout")}
       </Button>
     </div>
   );
 }
 
 function ProfileStats({ userId }: { userId: string }) {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     saved: 0,
     enquiries: 0,
@@ -137,14 +140,15 @@ function ProfileStats({ userId }: { userId: string }) {
 
   return (
     <div className="mt-6 grid gap-3 sm:grid-cols-3">
-      <Stat label="Saved" value={loading ? "..." : stats.saved} />
-      <Stat label="Enquiries" value={loading ? "..." : stats.enquiries} />
-      <Stat label="Listings" value={stats.listings} />
+      <Stat label={t("profile.saved")} value={loading ? "..." : stats.saved} />
+      <Stat label={t("profile.enquiries")} value={loading ? "..." : stats.enquiries} />
+      <Stat label={t("profile.listings")} value={stats.listings} />
     </div>
   );
 }
 
 function ProfileHeader() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user)!;
 
   return (
@@ -159,11 +163,11 @@ function ProfileHeader() {
             <h1 className="text-2xl font-bold">{user.name}</h1>
             {user.verified && (
               <Badge className="gap-1 border-0 bg-secondary/15 text-secondary">
-                <Shield className="h-3 w-3" /> Verified
+                <Shield className="h-3 w-3" /> {t("profile.verified")}
               </Badge>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">Member since {user.joinedYear}</p>
+          <p className="text-sm text-muted-foreground">{t("profile.memberSince", { year: user.joinedYear })}</p>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
             {user.email && (
               <span className="flex items-center gap-1">
@@ -190,6 +194,7 @@ function ProfileHeader() {
 }
 
 function EditProfileDialog() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user)!;
   const updateUser = useAuthStore((s) => s.updateUser);
   const photoInputId = useId();
@@ -210,7 +215,7 @@ function EditProfileDialog() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Choose an image file.");
+      toast.error(t("profile.chooseImage"));
       return;
     }
     const reader = new FileReader();
@@ -221,7 +226,7 @@ function EditProfileDialog() {
   function save(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Name is required");
+      toast.error(t("profile.nameRequired"));
       return;
     }
     updateUser({
@@ -231,7 +236,7 @@ function EditProfileDialog() {
       avatarInitials: initialsFrom(name),
       avatarUrl: avatarUrl || null,
     });
-    toast.success("Profile updated");
+    toast.success(t("profile.updated"));
     setOpen(false);
   }
 
@@ -245,12 +250,12 @@ function EditProfileDialog() {
     >
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
-          <Pencil className="h-4 w-4" /> Edit profile
+          <Pencil className="h-4 w-4" /> {t("profile.editProfile")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
+          <DialogTitle>{t("profile.editProfile")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={save} className="space-y-4">
           <div className="flex flex-col items-center gap-2">
@@ -275,30 +280,30 @@ function EditProfileDialog() {
                 className="h-8 text-xs text-destructive hover:text-destructive"
                 onClick={() => setAvatarUrl("")}
               >
-                Remove photo
+                {t("profile.removePhoto")}
               </Button>
             )}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="profile-name">Full name</Label>
+            <Label htmlFor="profile-name">{t("profile.fullName")}</Label>
             <Input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="profile-email">Email</Label>
+            <Label htmlFor="profile-email">{t("profile.email")}</Label>
             <Input id="profile-email" value={user.email ?? ""} disabled />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="profile-phone">Phone</Label>
+              <Label htmlFor="profile-phone">{t("profile.phone")}</Label>
               <Input id="profile-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="profile-city">City</Label>
+              <Label htmlFor="profile-city">{t("profile.city")}</Label>
               <Input id="profile-city" value={city} onChange={(e) => setCity(e.target.value)} />
             </div>
           </div>
           <Button type="submit" className="w-full">
-            Submit
+            {t("actions.submit")}
           </Button>
         </form>
       </DialogContent>
@@ -307,6 +312,7 @@ function EditProfileDialog() {
 }
 
 function ChangePassword() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user)!;
   const [open, setOpen] = useState(false);
   const [stage, setStage] = useState<"choose" | "verify" | "form">("choose");
@@ -323,12 +329,12 @@ function ChangePassword() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (pw.length < 6) return toast.error("Password must be at least 6 characters");
-    if (pw !== pw2) return toast.error("Passwords don't match");
+    if (pw.length < 6) return toast.error(t("profile.passwordMin"));
+    if (pw !== pw2) return toast.error(t("profile.passwordMismatch"));
     setSaving(true);
     try {
       await mockAuth.resetPassword(pw);
-      toast.success("Password updated");
+      toast.success(t("profile.passwordUpdated"));
       setOpen(false);
       reset();
     } finally {
@@ -345,8 +351,8 @@ function ChangePassword() {
           <KeyRound className="h-4 w-4" />
         </span>
         <div>
-          <p className="font-medium">Change password</p>
-          <p className="text-xs text-muted-foreground">Verify ownership, then set a new one.</p>
+          <p className="font-medium">{t("profile.changePassword")}</p>
+          <p className="text-xs text-muted-foreground">{t("profile.changePasswordSub")}</p>
         </div>
       </div>
       <Dialog
@@ -358,17 +364,17 @@ function ChangePassword() {
       >
         <DialogTrigger asChild>
           <Button variant="outline" size="sm">
-            Change
+            {t("profile.change")}
           </Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change password</DialogTitle>
+            <DialogTitle>{t("profile.changePassword")}</DialogTitle>
           </DialogHeader>
 
           {stage === "choose" && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Choose a verification method.</p>
+              <p className="text-sm text-muted-foreground">{t("profile.chooseVerification")}</p>
               <div className="grid gap-2">
                 {user.email && (
                   <Button
@@ -379,7 +385,7 @@ function ChangePassword() {
                       setStage("verify");
                     }}
                   >
-                    <Mail className="h-4 w-4" /> Send code to {user.email}
+                    <Mail className="h-4 w-4" /> {t("profile.sendCodeTo", { target: user.email })}
                   </Button>
                 )}
                 {user.phone && (
@@ -391,7 +397,7 @@ function ChangePassword() {
                       setStage("verify");
                     }}
                   >
-                    <Phone className="h-4 w-4" /> Send code to {user.phone}
+                    <Phone className="h-4 w-4" /> {t("profile.sendCodeTo", { target: user.phone })}
                   </Button>
                 )}
               </div>
@@ -410,7 +416,7 @@ function ChangePassword() {
           {stage === "form" && (
             <form onSubmit={save} className="space-y-3">
               <div className="space-y-1.5">
-                <Label>New password</Label>
+                <Label>{t("profile.newPassword")}</Label>
                 <Input
                   type="password"
                   value={pw}
@@ -419,7 +425,7 @@ function ChangePassword() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Confirm password</Label>
+                <Label>{t("profile.confirmPassword")}</Label>
                 <Input
                   type="password"
                   value={pw2}
@@ -429,7 +435,7 @@ function ChangePassword() {
               </div>
               <Button type="submit" className="h-11 w-full" disabled={saving}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                Update password
+                {t("profile.updatePassword")}
               </Button>
             </form>
           )}
@@ -448,6 +454,7 @@ const PROVIDER_META: Record<AuthProvider, { label: string; icon: React.ReactNode
 };
 
 function ConnectedAccounts() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user)!;
   const addCredential = useAuthStore((s) => s.addCredential);
   const removeCredential = useAuthStore((s) => s.removeCredential);
@@ -458,16 +465,16 @@ function ConnectedAccounts() {
 
   function handleRemove(c: ConnectedCredential) {
     if (c.loginEnabled && activeCount <= 1) {
-      toast.error("You need at least one active login method.");
+      toast.error(t("profile.activeLoginRequired"));
       return;
     }
     removeCredential(c.provider, c.value);
-    toast.success(`${PROVIDER_META[c.provider].label} disconnected`);
+    toast.success(t("profile.disconnected", { provider: PROVIDER_META[c.provider].label }));
   }
 
   function handleToggleLogin(c: ConnectedCredential, next: boolean) {
     if (!next && c.loginEnabled && activeCount <= 1) {
-      toast.error("You need at least one active login method.");
+      toast.error(t("profile.activeLoginRequired"));
       return;
     }
     updateCredential(c.provider, c.value, { loginEnabled: next });
@@ -488,27 +495,27 @@ function ConnectedAccounts() {
               <p className="font-medium">{PROVIDER_META[c.provider].label}</p>
               {c.primary && (
                 <Badge className="gap-1 border-0 bg-primary/10 text-primary">
-                  <Star className="h-3 w-3" /> Primary
+                  <Star className="h-3 w-3" /> {t("profile.primary")}
                 </Badge>
               )}
               {c.verified ? (
                 <Badge className="gap-1 border-0 bg-secondary/15 text-secondary">
-                  <CheckCircle2 className="h-3 w-3" /> Verified
+                  <CheckCircle2 className="h-3 w-3" /> {t("profile.verified")}
                 </Badge>
               ) : (
-                <Badge variant="outline">Unverified</Badge>
+                <Badge variant="outline">{t("profile.unverified")}</Badge>
               )}
             </div>
             <p className="truncate text-xs text-muted-foreground">{c.value}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs">
-              <span>Login</span>
+              <span>{t("profile.login")}</span>
               <Switch checked={c.loginEnabled} onCheckedChange={(v) => handleToggleLogin(c, v)} />
             </div>
             {!c.primary && (
               <Button variant="ghost" size="sm" onClick={() => setPrimary(c.provider, c.value)}>
-                Set primary
+                {t("profile.setPrimary")}
               </Button>
             )}
             <Button
@@ -526,7 +533,7 @@ function ConnectedAccounts() {
       <AttachCredential
         onAttach={(c) => {
           addCredential(c);
-          toast.success(`${PROVIDER_META[c.provider].label} connected`);
+          toast.success(t("profile.connectedToast", { provider: PROVIDER_META[c.provider].label }));
         }}
       />
     </div>
@@ -534,6 +541,7 @@ function ConnectedAccounts() {
 }
 
 function AttachCredential({ onAttach }: { onAttach: (c: ConnectedCredential) => void }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"choose" | "email" | "phone" | "verify-email" | "verify-phone">(
     "choose",
@@ -585,12 +593,12 @@ function AttachCredential({ onAttach }: { onAttach: (c: ConnectedCredential) => 
           type="button"
           className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-sm font-medium text-muted-foreground hover:bg-muted"
         >
-          <Plus className="h-4 w-4" /> Attach another login method
+          <Plus className="h-4 w-4" /> {t("profile.attachMethod")}
         </button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Attach a login method</DialogTitle>
+          <DialogTitle>{t("profile.attachTitle")}</DialogTitle>
         </DialogHeader>
 
         {mode === "choose" && (
@@ -601,19 +609,19 @@ function AttachCredential({ onAttach }: { onAttach: (c: ConnectedCredential) => 
                 className="h-11 justify-start gap-2"
                 onClick={() => setMode("email")}
               >
-                <Mail className="h-4 w-4" /> Attach email
+                <Mail className="h-4 w-4" /> {t("profile.attachEmail")}
               </Button>
               <Button
                 variant="outline"
                 className="h-11 justify-start gap-2"
                 onClick={() => setMode("phone")}
               >
-                <Phone className="h-4 w-4" /> Attach phone
+                <Phone className="h-4 w-4" /> {t("profile.attachPhone")}
               </Button>
             </div>
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <div className="h-px flex-1 bg-border" />
-              <span>or social</span>
+              <span>{t("profile.orSocial")}</span>
               <div className="h-px flex-1 bg-border" />
             </div>
             <SocialButtons onProvider={handleGoogle} mode="attach" />
@@ -630,7 +638,7 @@ function AttachCredential({ onAttach }: { onAttach: (c: ConnectedCredential) => 
             className="space-y-3"
           >
             <div className="space-y-1.5">
-              <Label>{mode === "email" ? "Email address" : "Phone number"}</Label>
+              <Label>{t(mode === "email" ? "profile.emailAddress" : "profile.phoneNumber")}</Label>
               <Input
                 type={mode === "email" ? "email" : "tel"}
                 placeholder={mode === "email" ? "you@example.com" : "+8801712345678"}
@@ -640,7 +648,7 @@ function AttachCredential({ onAttach }: { onAttach: (c: ConnectedCredential) => 
               />
             </div>
             <Button type="submit" className="h-11 w-full">
-              <Shield className="h-4 w-4" /> Send verification code
+              <Shield className="h-4 w-4" /> {t("profile.sendVerification")}
             </Button>
           </form>
         )}
@@ -678,21 +686,22 @@ function SectionHeader({ title, sub }: { title: string; sub: string }) {
 }
 
 function SignedOut() {
+  const { t } = useTranslation();
   return (
     <div className="mx-auto w-full max-w-md px-4 py-16 text-center">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <LogIn className="h-7 w-7" />
       </div>
-      <h1 className="mt-4 text-2xl font-bold">Sign in to HomeBee</h1>
+      <h1 className="mt-4 text-2xl font-bold">{t("profile.signedOutTitle")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Log in to save listings, contact owners, and manage your account.
+        {t("profile.signedOutSub")}
       </p>
       <div className="mt-6 flex justify-center gap-2">
         <Link
           to="/auth/login"
           className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
-          Log in
+          {t("common.login")}
         </Link>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function SignupForm({ onSubmit, submitting }: Props) {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,11 +27,11 @@ export function SignupForm({ onSubmit, submitting }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   function validate(): string | null {
-    if (!fullName.trim()) return "Enter your full name.";
-    if (!email.trim()) return "Enter your email address.";
-    if (!/^\S+@\S+\.\S+$/.test(email)) return "That email address looks invalid.";
-    if (password.length < 6) return "Password must be at least 6 characters.";
-    if (password !== confirmPassword) return "Passwords do not match.";
+    if (!fullName.trim()) return "auth.form.enterName";
+    if (!email.trim()) return "auth.form.enterEmail";
+    if (!/^\S+@\S+\.\S+$/.test(email)) return "auth.form.invalidEmail";
+    if (password.length < 6) return "auth.form.passwordMin";
+    if (password !== confirmPassword) return "auth.form.passwordMismatch";
     return null;
   }
 
@@ -47,11 +49,11 @@ export function SignupForm({ onSubmit, submitting }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="su-name">Full name</Label>
+        <Label htmlFor="su-name">{t("auth.form.fullName")}</Label>
         <Input
           id="su-name"
           type="text"
-          placeholder="Your name"
+          placeholder={t("auth.form.yourName")}
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           className="h-11"
@@ -60,11 +62,11 @@ export function SignupForm({ onSubmit, submitting }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="su-email">Email address</Label>
+        <Label htmlFor="su-email">{t("auth.form.emailAddress")}</Label>
         <Input
           id="su-email"
           type="email"
-          placeholder="you@example.com"
+          placeholder={t("auth.form.emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="h-11"
@@ -73,12 +75,12 @@ export function SignupForm({ onSubmit, submitting }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="su-password">Password</Label>
+        <Label htmlFor="su-password">{t("auth.form.password")}</Label>
         <div className="relative">
           <Input
             id="su-password"
             type={showPw ? "text" : "password"}
-            placeholder="At least 6 characters"
+            placeholder={t("auth.form.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="h-11 pr-10"
@@ -86,7 +88,7 @@ export function SignupForm({ onSubmit, submitting }: Props) {
           />
           <button
             type="button"
-            aria-label={showPw ? "Hide password" : "Show password"}
+            aria-label={showPw ? t("auth.form.hidePassword") : t("auth.form.showPassword")}
             onClick={() => setShowPw((s) => !s)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
           >
@@ -96,12 +98,12 @@ export function SignupForm({ onSubmit, submitting }: Props) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="su-confirm">Confirm password</Label>
+        <Label htmlFor="su-confirm">{t("auth.form.confirmPassword")}</Label>
         <div className="relative">
           <Input
             id="su-confirm"
             type={showCpw ? "text" : "password"}
-            placeholder="Repeat your password"
+            placeholder={t("auth.form.repeatPassword")}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className="h-11 pr-10"
@@ -109,7 +111,7 @@ export function SignupForm({ onSubmit, submitting }: Props) {
           />
           <button
             type="button"
-            aria-label={showCpw ? "Hide password" : "Show password"}
+            aria-label={showCpw ? t("auth.form.hidePassword") : t("auth.form.showPassword")}
             onClick={() => setShowCpw((s) => !s)}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
           >
@@ -120,7 +122,7 @@ export function SignupForm({ onSubmit, submitting }: Props) {
 
       {error && (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
+          {t(error)}
         </p>
       )}
 
@@ -130,7 +132,7 @@ export function SignupForm({ onSubmit, submitting }: Props) {
         disabled={submitting}
       >
         {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Create account
+        {t("auth.form.createAccount")}
       </Button>
     </form>
   );

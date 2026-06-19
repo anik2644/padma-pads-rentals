@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { fetchResidentialDetail, type ResidentialType } from "@/lib/residential";
 import { formatBDT, formatDate } from "@/lib/format";
 import { useLanguageStore } from "@/store/languageStore";
@@ -25,22 +26,33 @@ export const Route = createFileRoute("/residential/$type/$id")({
     if (!detail) throw notFound();
     return detail;
   },
-  errorComponent: ({ error }) => (
-    <div className="mx-auto max-w-md py-24 text-center">
-      <h1 className="text-2xl font-bold">Could not load property</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
-      <Button asChild className="mt-4"><Link to="/residential">Back to browse</Link></Button>
-    </div>
-  ),
-  notFoundComponent: () => (
-    <div className="mx-auto max-w-md py-24 text-center">
-      <h1 className="text-2xl font-bold">Property not found</h1>
-      <Button asChild className="mt-4"><Link to="/residential">Back to browse</Link></Button>
-    </div>
-  ),
+  errorComponent: ResidentialError,
+  notFoundComponent: ResidentialNotFound,
 });
 
+function ResidentialError({ error }: { error: Error }) {
+  const { t } = useTranslation();
+  return (
+    <div className="mx-auto max-w-md py-24 text-center">
+      <h1 className="text-2xl font-bold">{t("detail.couldNotLoad")}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      <Button asChild className="mt-4"><Link to="/residential">{t("actions.backToBrowse")}</Link></Button>
+    </div>
+  );
+}
+
+function ResidentialNotFound() {
+  const { t } = useTranslation();
+  return (
+    <div className="mx-auto max-w-md py-24 text-center">
+      <h1 className="text-2xl font-bold">{t("detail.propertyNotFound")}</h1>
+      <Button asChild className="mt-4"><Link to="/residential">{t("actions.backToBrowse")}</Link></Button>
+    </div>
+  );
+}
+
 function PropertyDetail() {
+  const { t } = useTranslation();
   const item = Route.useLoaderData();
   const { lang } = useLanguageStore();
   const user = useAuthStore((s) => s.user);
@@ -75,23 +87,23 @@ function PropertyDetail() {
         setFavoriteId(null);
         setSaved(false);
         notifyFavoritesChanged();
-        toast.success("Removed from saved listings");
+        toast.success(t("actions.removedSaved"));
         return;
       }
       const favorite = await createFavorite({ advertisementId, propertyId: item.id });
       setFavoriteId(favorite.id);
       setSaved(true);
       notifyFavoritesChanged();
-      toast.success("Saved listing");
+      toast.success(t("actions.savedListing"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not update saved listing");
+      toast.error(err instanceof Error ? err.message : t("actions.updateSavedError"));
     }
   }
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8">
       <Link to="/residential" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to browse
+        <ArrowLeft className="h-4 w-4" /> {t("actions.backToBrowse")}
       </Link>
 
       {/* Gallery */}
@@ -99,10 +111,10 @@ function PropertyDetail() {
         <div className="relative md:col-span-3 aspect-[16/10] overflow-hidden rounded-3xl bg-muted">
           <img src={item.gallery[activeImg]} alt={item.name} className="h-full w-full object-cover" />
           <div className="absolute right-3 top-3 flex gap-2">
-            <button onClick={toggleFavorite} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur hover:scale-105 transition" aria-label="Save">
+            <button onClick={toggleFavorite} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur hover:scale-105 transition" aria-label={t("common.save")}>
               <Heart className={cn("h-4 w-4", saved ? "fill-primary text-primary" : "")} />
             </button>
-            <button onClick={() => toast.success("Link copied")} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur hover:scale-105 transition" aria-label="Share">
+            <button onClick={() => toast.success(t("actions.linkCopied"))} className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur hover:scale-105 transition" aria-label={t("actions.share")}>
               <Share2 className="h-4 w-4" />
             </button>
           </div>
@@ -130,26 +142,26 @@ function PropertyDetail() {
               <div className="text-right">
                 <p className="text-3xl font-bold text-primary">{formatBDT(item.rent)}</p>
                 <p className="text-sm text-muted-foreground">{item.rentLabel === "perSeat" ? "/seat/month" : "/month"}</p>
-                {item.negotiable && <Badge variant="secondary" className="mt-1">Negotiable</Badge>}
+                {item.negotiable && <Badge variant="secondary" className="mt-1">{t("detail.negotiable")}</Badge>}
               </div>
             </div>
           </div>
 
           {/* Stat row */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat icon={BedDouble} label="Bedrooms" value={String(item.bedrooms)} />
-            <Stat icon={Bath} label="Bathrooms" value={String(item.bathrooms)} />
-            <Stat icon={Maximize2} label="Size" value={`${item.sizeSqft} sqft`} />
-            <Stat icon={Building2} label="Floor" value={`${item.floor}th`} />
+            <Stat icon={BedDouble} label={t("detail.bedrooms")} value={String(item.bedrooms)} />
+            <Stat icon={Bath} label={t("detail.bathrooms")} value={String(item.bathrooms)} />
+            <Stat icon={Maximize2} label={t("detail.size")} value={`${item.sizeSqft} ${t("commercial.sizeUnit")}`} />
+            <Stat icon={Building2} label={t("detail.floor")} value={`${item.floor}th`} />
           </div>
 
           <section>
-            <h2 className="mb-2 text-lg font-semibold">About this property</h2>
+            <h2 className="mb-2 text-lg font-semibold">{t("detail.about")}</h2>
             <p className="text-muted-foreground leading-relaxed">{item.description}</p>
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Amenities</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("detail.amenities")}</h2>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {item.amenities.map((a: string) => (
                 <div key={a} className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm">
@@ -160,14 +172,14 @@ function PropertyDetail() {
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold">House rules</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("detail.houseRules")}</h2>
             <ul className="space-y-1.5 text-sm text-muted-foreground">
               {item.rules.map((r: string) => <li key={r}>• {r}</li>)}
             </ul>
           </section>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold">Location</h2>
+            <h2 className="mb-3 text-lg font-semibold">{t("detail.location")}</h2>
             <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-border">
               <iframe
                 title="map"
@@ -188,21 +200,21 @@ function PropertyDetail() {
                   {item.owner.name}
                   {item.owner.verified && <Shield className="h-4 w-4 text-secondary" />}
                 </p>
-                <p className="text-xs text-muted-foreground">Member since {item.owner.memberSince}</p>
+                <p className="text-xs text-muted-foreground">{t("detail.memberSince", { year: item.owner.memberSince })}</p>
               </div>
             </div>
             <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" /> Responds {item.owner.responseTime}
+              <Clock className="h-3.5 w-3.5" /> {t("detail.responds", { time: item.owner.responseTime })}
             </div>
             <Separator className="my-4" />
             {item.availableFrom && (
               <div className="mb-4 flex items-center gap-2 text-sm">
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                Available from <span className="font-semibold">{formatDate(item.availableFrom, lang)}</span>
+                {t("detail.availableFrom")} <span className="font-semibold">{formatDate(item.availableFrom, lang)}</span>
               </div>
             )}
             <div className="space-y-2">
-              <Button className="w-full gap-2" onClick={() => toast.success("Owner will be notified")}>
+              <Button className="w-full gap-2" onClick={() => toast.success(t("detail.ownerNotified"))}>
                 <Phone className="h-4 w-4" /> 🇧🇩 {item.owner.phone}
               </Button>
               <Button variant="outline" className="w-full gap-2" asChild>
@@ -221,12 +233,12 @@ function PropertyDetail() {
                       .join(""),
                   }}
                 >
-                  <MessageCircle className="h-4 w-4" /> Message owner
+                  <MessageCircle className="h-4 w-4" /> {t("detail.messageOwner")}
                 </Link>
               </Button>
             </div>
             <p className="mt-4 text-center text-[11px] text-muted-foreground">
-              Never pay before viewing. Report suspicious listings.
+              {t("detail.safety")}
             </p>
           </div>
           <VisitRequestPanel

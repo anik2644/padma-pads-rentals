@@ -4,8 +4,10 @@ import { useLanguageStore } from "@/store/languageStore";
 import { initI18n } from "@/i18n";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export function ThemeToggle({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const { theme, toggle } = useThemeStore();
   // Re-apply on mount in case of SSR mismatch
   useEffect(() => {
@@ -16,7 +18,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label="Toggle theme"
+      aria-label={t("common.toggleTheme", { defaultValue: "Toggle theme" })}
       className={cn(
         "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-foreground transition-colors hover:bg-accent",
         className,
@@ -28,6 +30,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 }
 
 export function LanguageToggle({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const { lang, toggle } = useLanguageStore();
   useEffect(() => {
     initI18n(lang);
@@ -37,7 +40,7 @@ export function LanguageToggle({ className }: { className?: string }) {
     <button
       type="button"
       onClick={toggle}
-      aria-label="Toggle language"
+      aria-label={t("common.toggleLanguage", { defaultValue: "Toggle language" })}
       className={cn(
         "inline-flex h-9 items-center justify-center rounded-full border border-border bg-surface px-3 text-xs font-semibold text-foreground transition-colors hover:bg-accent",
         className,

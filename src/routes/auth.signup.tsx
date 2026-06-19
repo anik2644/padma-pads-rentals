@@ -7,6 +7,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { SignupForm, type SignupValues } from "@/components/auth/SignupForm";
 import { SocialButtons } from "@/components/auth/SocialButtons";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/auth/signup")({
 });
 
 function SignupPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
   const setToken = useAuthStore((s) => s.setToken);
@@ -32,7 +34,7 @@ function SignupPage() {
     try {
       const auth = getFirebaseAuth();
       if (!auth) {
-        toast.error("Firebase is not configured. Add your VITE_FIREBASE_* values.");
+        toast.error(t("auth.firebaseMissing"));
         return;
       }
 
@@ -54,10 +56,10 @@ function SignupPage() {
       ]);
       setUser(storeData.user, storeData.profileCompleted);
       setToken(token);
-      toast.success(`Welcome to HomeBee, ${storeData.user.name.split(" ")[0]}!`);
+      toast.success(t("auth.welcomeSignup", { name: storeData.user.name.split(" ")[0] }));
       navigate({ to: "/" });
     } catch (err) {
-      toast.error(signupErrorMessage(err));
+      toast.error(signupErrorMessage(err, t));
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +70,7 @@ function SignupPage() {
     try {
       const auth = getFirebaseAuth();
       if (!auth) {
-        toast.error("Firebase is not configured. Add your VITE_FIREBASE_* values.");
+        toast.error(t("auth.firebaseMissing"));
         return;
       }
       const credential = await signInWithPopup(auth, new GoogleAuthProvider());
@@ -82,10 +84,10 @@ function SignupPage() {
       ]);
       setUser(storeData.user, storeData.profileCompleted);
       setToken(token);
-      toast.success(`Welcome to HomeBee, ${storeData.user.name.split(" ")[0]}!`);
+      toast.success(t("auth.welcomeSignup", { name: storeData.user.name.split(" ")[0] }));
       navigate({ to: "/" });
     } catch (err) {
-      toast.error(signupErrorMessage(err));
+      toast.error(signupErrorMessage(err, t));
     } finally {
       setSubmitting(false);
     }
@@ -94,16 +96,16 @@ function SignupPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Create an account</h1>
+        <h1 className="text-2xl font-bold">{t("auth.signupTitle")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Join HomeBee to find and list properties.
+          {t("auth.signupSub")}
         </p>
       </div>
       <SignupForm onSubmit={handleSignup} submitting={submitting} />
       <p className="text-center text-xs text-muted-foreground">
-        Already have an account?{" "}
+        {t("auth.hasAccount")}{" "}
         <Link to="/auth/login" className="font-medium text-primary hover:underline">
-          Log in
+          {t("common.login")}
         </Link>
       </p>
       <Divider />
@@ -112,22 +114,23 @@ function SignupPage() {
   );
 }
 
-function signupErrorMessage(err: unknown): string {
+function signupErrorMessage(err: unknown, t: (key: string) => string): string {
   const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
   if (code === "auth/email-already-in-use")
-    return "An account with this email already exists. Try logging in.";
-  if (code === "auth/weak-password") return "Password is too weak. Use at least 6 characters.";
-  if (code === "auth/invalid-email") return "That email address is invalid.";
-  if (code === "auth/popup-closed-by-user") return "Google sign-up was closed.";
-  if (code === "auth/popup-blocked") return "Popup was blocked. Allow popups and try again.";
-  return "Sign up failed. Please try again.";
+    return t("auth.errors.emailInUse");
+  if (code === "auth/weak-password") return t("auth.errors.weakPassword");
+  if (code === "auth/invalid-email") return t("auth.errors.invalidEmail");
+  if (code === "auth/popup-closed-by-user") return t("auth.errors.signupPopupClosed");
+  if (code === "auth/popup-blocked") return t("auth.errors.popupBlocked");
+  return t("auth.errors.signupFailed");
 }
 
 function Divider() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 text-xs text-muted-foreground">
       <div className="h-px flex-1 bg-border" />
-      <span>or</span>
+      <span>{t("auth.or")}</span>
       <div className="h-px flex-1 bg-border" />
     </div>
   );

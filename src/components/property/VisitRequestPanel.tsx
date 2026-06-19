@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import {
   type VisitRequestStatus,
 } from "@/lib/property-visit-requests";
 import { cn } from "@/lib/utils";
+import { useLanguageStore } from "@/store/languageStore";
 
 interface VisitRequestPanelProps {
   advertisementId: string;
@@ -20,11 +22,11 @@ interface VisitRequestPanelProps {
   showOwnerActions?: boolean;
 }
 
-const STATUS_META: Record<VisitRequestStatus, { label: string; className: string }> = {
-  PENDING: { label: "PENDING", className: "border-amber-200 bg-amber-50 text-amber-700" },
-  APPROVED: { label: "APPROVED", className: "border-green-200 bg-green-50 text-green-700" },
-  REJECTED: { label: "REJECTED", className: "border-red-200 bg-red-50 text-red-700" },
-  CANCELLED: { label: "CANCELLED", className: "border-muted bg-muted text-muted-foreground" },
+const STATUS_META: Record<VisitRequestStatus, { className: string }> = {
+  PENDING: { className: "border-amber-200 bg-amber-50 text-amber-700" },
+  APPROVED: { className: "border-green-200 bg-green-50 text-green-700" },
+  REJECTED: { className: "border-red-200 bg-red-50 text-red-700" },
+  CANCELLED: { className: "border-muted bg-muted text-muted-foreground" },
 };
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, "0")}:00`);
@@ -35,6 +37,7 @@ export function VisitRequestPanel({
   requesterName,
   showOwnerActions = true,
 }: VisitRequestPanelProps) {
+  const { t } = useTranslation();
   const [requests, setRequests] = useState<VisitRequest[]>([]);
   const [preferredDate, setPreferredDate] = useState("");
   const [preferredTime, setPreferredTime] = useState("10:00");
@@ -57,7 +60,7 @@ export function VisitRequestPanel({
     try {
       setRequests(await visitRequestsApi.list(propertyId));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not load visit requests");
+      toast.error(err instanceof Error ? err.message : t("visit.loadError"));
     }
   }
 
@@ -76,7 +79,7 @@ export function VisitRequestPanel({
   async function createRequest(e: React.FormEvent) {
     e.preventDefault();
     if (!preferredDate || !preferredTime) {
-      toast.error("Preferred date and time are required.");
+      toast.error(t("visit.required"));
       return;
     }
 
@@ -93,7 +96,7 @@ export function VisitRequestPanel({
       });
       resetForm();
       await refresh();
-      toast.success("Visit request created");
+      toast.success(t("visit.created"));
     } finally {
       setSaving(false);
     }
@@ -103,9 +106,9 @@ export function VisitRequestPanel({
     try {
       await visitRequestsApi.cancel(requestId);
       await refresh();
-      toast.success("Visit request cancelled");
+      toast.success(t("visit.cancelled"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not cancel visit request");
+      toast.error(err instanceof Error ? err.message : t("visit.cancelError"));
     }
   }
 
@@ -113,25 +116,25 @@ export function VisitRequestPanel({
     try {
       await visitRequestsApi.approve(requestId);
       await refresh();
-      toast.success("Visit request approved");
+      toast.success(t("visit.approved"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not approve visit request");
+      toast.error(err instanceof Error ? err.message : t("visit.approveError"));
     }
   }
 
   async function rejectRequest(requestId: string) {
     const reason = rejectionReason.trim();
     if (!reason) {
-      toast.error("Add a rejection reason first.");
+      toast.error(t("visit.reasonRequired"));
       return;
     }
     try {
       await visitRequestsApi.reject(requestId, reason);
       setRejectionReason("");
       await refresh();
-      toast.success("Visit request rejected");
+      toast.success(t("visit.rejected"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not reject visit request");
+      toast.error(err instanceof Error ? err.message : t("visit.rejectError"));
     }
   }
 
@@ -139,8 +142,8 @@ export function VisitRequestPanel({
     <section className="mt-4 rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold">Visit request</h3>
-          <p className="text-xs text-muted-foreground">Request a viewing time for this property.</p>
+          <h3 className="font-semibold">{t("visit.title")}</h3>
+          <p className="text-xs text-muted-foreground">{t("visit.subtitle")}</p>
         </div>
         <Badge variant="outline" className="shrink-0">
           {requests.length}
@@ -156,7 +159,7 @@ export function VisitRequestPanel({
         <form onSubmit={createRequest} className="mt-4 space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label htmlFor={`preferred-date-${propertyId}`}>Preferred date</Label>
+              <Label htmlFor={`preferred-date-${propertyId}`}>{t("visit.preferredDate")}</Label>
               <Input
                 id={`preferred-date-${propertyId}`}
                 type="date"
@@ -166,7 +169,7 @@ export function VisitRequestPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor={`preferred-time-${propertyId}`}>Preferred time</Label>
+              <Label htmlFor={`preferred-time-${propertyId}`}>{t("visit.preferredTime")}</Label>
               <select
                 id={`preferred-time-${propertyId}`}
                 value={preferredTime}
@@ -185,7 +188,7 @@ export function VisitRequestPanel({
 
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label htmlFor={`alternate-date-${propertyId}`}>Alternate date</Label>
+              <Label htmlFor={`alternate-date-${propertyId}`}>{t("visit.alternateDate")}</Label>
               <Input
                 id={`alternate-date-${propertyId}`}
                 type="date"
@@ -194,14 +197,14 @@ export function VisitRequestPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor={`alternate-time-${propertyId}`}>Alternate time</Label>
+              <Label htmlFor={`alternate-time-${propertyId}`}>{t("visit.alternateTime")}</Label>
               <select
                 id={`alternate-time-${propertyId}`}
                 value={alternateTime}
                 onChange={(e) => setAlternateTime(e.target.value)}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">Any</option>
+                <option value="">{t("visit.any")}</option>
                 {HOURS.map((hour) => (
                   <option key={hour} value={hour}>
                     {hour}
@@ -212,19 +215,19 @@ export function VisitRequestPanel({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor={`visit-message-${propertyId}`}>Message</Label>
+            <Label htmlFor={`visit-message-${propertyId}`}>{t("visit.message")}</Label>
             <Textarea
               id={`visit-message-${propertyId}`}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Any note for the owner..."
+              placeholder={t("visit.messagePlaceholder")}
               rows={3}
             />
           </div>
 
           <Button type="submit" className="w-full gap-2" disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
-            Create visit request
+            {t("visit.create")}
           </Button>
         </form>
       )}
@@ -232,7 +235,7 @@ export function VisitRequestPanel({
       {requests.length > 0 && (
         <div className="mt-4 space-y-3 border-t border-border pt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Request history
+            {t("visit.history")}
           </p>
           {requests.map((request) => (
             <div key={request.id} className="rounded-xl border border-border bg-card p-3">
@@ -241,16 +244,16 @@ export function VisitRequestPanel({
                 <div className="mt-3 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <Button size="sm" onClick={() => approveRequest(request.id)}>
-                      Approve
+                      {t("visit.approve")}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => rejectRequest(request.id)}>
-                      Reject
+                      {t("visit.reject")}
                     </Button>
                   </div>
                   <Input
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Rejection reason"
+                    placeholder={t("visit.rejectionReason")}
                   />
                 </div>
               )}
@@ -269,12 +272,13 @@ function RequestSummary({
   request: VisitRequest;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mt-4 rounded-xl border border-border bg-card p-3">
       <RequestDetails request={request} />
       {(request.status === "PENDING" || request.status === "APPROVED") && (
         <Button variant="outline" size="sm" className="mt-3 w-full" onClick={onCancel}>
-          Cancel request
+          {t("visit.cancelRequest")}
         </Button>
       )}
     </div>
@@ -282,51 +286,53 @@ function RequestSummary({
 }
 
 function RequestDetails({ request }: { request: VisitRequest }) {
+  const { t } = useTranslation();
+  const { lang } = useLanguageStore();
   const status = STATUS_META[request.status];
   return (
     <div className="space-y-2 text-xs">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-medium">Requester: {request.requesterId}</p>
+        <p className="font-medium">{t("visit.requester", { id: request.requesterId })}</p>
         <Badge variant="outline" className={cn("border", status.className)}>
-          {status.label}
+          {t(`visit.statuses.${request.status}`)}
         </Badge>
       </div>
       <p className="flex items-center gap-1 text-muted-foreground">
         <CalendarDays className="h-3.5 w-3.5" />
-        {formatDateOnly(request.preferredDate)}
+        {formatDateOnly(request.preferredDate, lang)}
         <Clock className="ml-2 h-3.5 w-3.5" />
         {request.preferredTime}
       </p>
       {request.alternateDate && (
         <p className="text-muted-foreground">
-          Alternate: {formatDateOnly(request.alternateDate)}
-          {request.alternateTime ? ` at ${request.alternateTime}` : ""}
+          {t("visit.alternate", { date: formatDateOnly(request.alternateDate, lang) })}
+          {request.alternateTime ? ` ${t("visit.at", { time: request.alternateTime })}` : ""}
         </p>
       )}
       {request.message && <p className="rounded-md bg-muted p-2">{request.message}</p>}
       {request.rejectionReason && (
         <p className="rounded-md bg-destructive/10 p-2 text-destructive">
-          Rejection reason: {request.rejectionReason}
+          {t("visit.rejectionReason")}: {request.rejectionReason}
         </p>
       )}
       <div className="space-y-0.5 text-[11px] text-muted-foreground">
-        <p>Created: {formatDateTime(request.audit.createdAt)}</p>
-        <p>Updated: {formatDateTime(request.audit.updatedAt)}</p>
-        {request.audit.approvedAt && <p>Approved: {formatDateTime(request.audit.approvedAt)}</p>}
-        {request.audit.rejectedAt && <p>Rejected: {formatDateTime(request.audit.rejectedAt)}</p>}
-        {request.audit.cancelledAt && <p>Cancelled: {formatDateTime(request.audit.cancelledAt)}</p>}
+        <p>{t("visit.createdAt", { date: formatDateTime(request.audit.createdAt, lang) })}</p>
+        <p>{t("visit.updatedAt", { date: formatDateTime(request.audit.updatedAt, lang) })}</p>
+        {request.audit.approvedAt && <p>{t("visit.approvedAt", { date: formatDateTime(request.audit.approvedAt, lang) })}</p>}
+        {request.audit.rejectedAt && <p>{t("visit.rejectedAt", { date: formatDateTime(request.audit.rejectedAt, lang) })}</p>}
+        {request.audit.cancelledAt && <p>{t("visit.cancelledAt", { date: formatDateTime(request.audit.cancelledAt, lang) })}</p>}
       </div>
     </div>
   );
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
+function formatDateTime(value: string, lang: "en" | "bn") {
+  return new Intl.DateTimeFormat(lang, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
-function formatDateOnly(value: string) {
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
+function formatDateOnly(value: string, lang: "en" | "bn") {
+  return new Intl.DateTimeFormat(lang, { dateStyle: "medium" }).format(new Date(value));
 }

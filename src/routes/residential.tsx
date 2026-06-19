@@ -259,7 +259,7 @@ function SearchPanel({
             <SelectValue placeholder={t("residential.fields.division")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all">All divisions</SelectItem>
+            <SelectItem value="__all">{t("residential.fields.allDivisions")}</SelectItem>
             {DIVISIONS.map((d) => (
               <SelectItem key={d} value={d}>
                 {d}
@@ -292,7 +292,7 @@ function SearchPanel({
       {/* Target groups */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          For:
+          {t("residential.fields.targetGroup", { defaultValue: "For" })}:
         </span>
         {TARGET_GROUPS.map((g) => {
           const active = filters.targetGroup?.includes(g);
@@ -317,7 +317,7 @@ function SearchPanel({
       {/* Budget */}
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="flex items-center gap-2">
-          <Label className="w-20 shrink-0 text-xs text-muted-foreground">Min ৳</Label>
+          <Label className="w-20 shrink-0 text-xs text-muted-foreground">{t("residential.fields.minRent")}</Label>
           <Input
             type="number"
             inputMode="numeric"
@@ -332,7 +332,7 @@ function SearchPanel({
           />
         </div>
         <div className="flex items-center gap-2">
-          <Label className="w-20 shrink-0 text-xs text-muted-foreground">Max ৳</Label>
+          <Label className="w-20 shrink-0 text-xs text-muted-foreground">{t("residential.fields.maxRent")}</Label>
           <Input
             type="number"
             inputMode="numeric"
@@ -390,8 +390,8 @@ function AdvancedFiltersDrawer({
     { key: "lift",             label: t("residential.fields.lift") },
     { key: "parking",          label: t("residential.fields.parking") },
     { key: "wifi",             label: t("residential.fields.wifi") },
-    { key: "attachedBathroom", label: "Attached Bathroom" },
-    { key: "kitchenAccess",    label: "Kitchen Access" },
+    { key: "attachedBathroom", label: t("residential.fields.attachedBathroom", { defaultValue: "Attached Bathroom" }) },
+    { key: "kitchenAccess",    label: t("residential.fields.kitchenAccess", { defaultValue: "Kitchen Access" }) },
   ];
   return (
     <Sheet>
@@ -471,13 +471,13 @@ function AdvancedFiltersDrawer({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder={t("residential.fields.any")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__any">Any</SelectItem>
-                <SelectItem value="Male">Male</SelectItem>
-                <SelectItem value="Female">Female</SelectItem>
-                <SelectItem value="Any">No restriction</SelectItem>
+                <SelectItem value="__any">{t("residential.fields.any")}</SelectItem>
+                <SelectItem value="Male">{t("residential.fields.male")}</SelectItem>
+                <SelectItem value="Female">{t("residential.fields.female")}</SelectItem>
+                <SelectItem value="Any">{t("residential.fields.noRestriction")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -516,7 +516,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
     <div className="rounded-3xl border border-dashed border-border bg-surface p-12 text-center">
       <h3 className="text-lg font-semibold">{t("common.noResults")}</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Try removing some filters or expanding your search area.
+        {t("residential.expandSearch", { defaultValue: "Try removing some filters or expanding your search area." })}
       </p>
       <Button onClick={onReset} variant="outline" className="mt-4">
         {t("common.reset")}
@@ -529,9 +529,9 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation();
   return (
     <div className="rounded-3xl border border-dashed border-destructive/40 bg-destructive/5 p-12 text-center">
-      <h3 className="text-lg font-semibold text-destructive">Something went wrong</h3>
+      <h3 className="text-lg font-semibold text-destructive">{t("residential.errorTitle")}</h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        We couldn't reach HomeBee's listings server. Check your connection or your API base URL.
+        {t("residential.errorBody", { defaultValue: "We couldn't reach HomeBee's listings server. Check your connection or your API base URL." })}
       </p>
       <Button onClick={onRetry} variant="outline" className="mt-4">
         {t("common.retry")}

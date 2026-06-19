@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useMatchRoute } from "@tanstack/react-ro
 import { useState, useMemo } from "react";
 import { Star, MapPin, Phone, Search, Save, Users, BedDouble, CalendarDays } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,15 +19,6 @@ export const Route = createFileRoute("/recreational")({
   component: RecreationalPage,
 });
 
-const TYPE_LABEL: Record<RecreationalType, string> = {
-  hotels:      "Hotel",
-  resorts:     "Resort",
-  guesthouses: "Guest House",
-  villas:      "Villa",
-  motels:      "Motel",
-  cottages:    "Cottage",
-};
-
 interface RecFilters {
   types: RecreationalType[];
   destination?: string;
@@ -40,6 +32,7 @@ interface RecFilters {
 const DEFAULT_FILTERS: RecFilters = { types: [...RECREATIONAL_TYPES] };
 
 function RecreationalPage() {
+  const { t } = useTranslation();
   const matchRoute = useMatchRoute();
   const [filters, setFilters] = useState<RecFilters>(DEFAULT_FILTERS);
   const [applied, setApplied] = useState<RecFilters>(DEFAULT_FILTERS);
@@ -66,9 +59,9 @@ function RecreationalPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-10">
       <header className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Hotels & Resorts</h1>
+        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{t("recreational.title")}</h1>
         <p className="mt-1 text-muted-foreground">
-          Hotels, resorts, guest houses, villas & cottages across Cox's Bazar, Sylhet, Bandarban and beyond.
+          {t("recreational.subtitle")}
         </p>
       </header>
 
@@ -86,7 +79,7 @@ function RecreationalPage() {
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-surface text-muted-foreground hover:text-foreground",
               )}>
-              {TYPE_LABEL[type]}
+              {t(`recreational.types.${type}`)}
             </button>
           ))}
         </div>
@@ -95,19 +88,19 @@ function RecreationalPage() {
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-11 pl-9" placeholder="Destination (city, area…)"
+            <Input className="h-11 pl-9" placeholder={t("recreational.fields.destination")}
               value={filters.destination ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, destination: e.target.value || undefined }))} />
           </div>
           <div className="relative">
             <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <Input className="h-11 pl-9" type="date" placeholder="Check-in"
+            <Input className="h-11 pl-9" type="date" placeholder={t("recreational.fields.checkIn")}
               value={filters.checkIn ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, checkIn: e.target.value || undefined }))} />
           </div>
           <div className="relative">
             <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-            <Input className="h-11 pl-9" type="date" placeholder="Check-out"
+            <Input className="h-11 pl-9" type="date" placeholder={t("recreational.fields.checkOut")}
               value={filters.checkOut ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, checkOut: e.target.value || undefined }))} />
           </div>
@@ -117,19 +110,19 @@ function RecreationalPage() {
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="relative">
             <Users className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-11 pl-9" type="number" min={1} placeholder="Guests"
+            <Input className="h-11 pl-9" type="number" min={1} placeholder={t("recreational.fields.guests")}
               value={filters.guests ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, guests: e.target.value ? Number(e.target.value) : undefined }))} />
           </div>
           <div className="relative">
             <BedDouble className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="h-11 pl-9" type="number" min={1} placeholder="Rooms"
+            <Input className="h-11 pl-9" type="number" min={1} placeholder={t("recreational.fields.rooms")}
               value={filters.rooms ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, rooms: e.target.value ? Number(e.target.value) : undefined }))} />
           </div>
           <div className="flex items-center gap-2">
-            <Label className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">Max ৳/night</Label>
-            <Input className="h-11" type="number" placeholder="Budget"
+            <Label className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">{t("recreational.fields.maxNight")}</Label>
+            <Input className="h-11" type="number" placeholder={t("recreational.fields.budget")}
               value={filters.maxBudget ?? ""}
               onChange={(e) => setFilters((f) => ({ ...f, maxBudget: e.target.value ? Number(e.target.value) : undefined }))} />
           </div>
@@ -138,16 +131,16 @@ function RecreationalPage() {
         {/* Actions */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <Button type="submit" size="lg" className="gap-2">
-            <Search className="h-4 w-4" /> Search
+            <Search className="h-4 w-4" /> {t("common.search")}
           </Button>
-          <Button type="button" variant="ghost" onClick={reset}>Reset</Button>
+          <Button type="button" variant="ghost" onClick={reset}>{t("common.reset")}</Button>
         </div>
       </form>
 
       {/* Results */}
       <AnimatePresence>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-          <p className="mt-6 text-sm text-muted-foreground">{items.length} stays found</p>
+          <p className="mt-6 text-sm text-muted-foreground">{t("recreational.results", { count: items.length })}</p>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((p, i) => (
               <motion.article key={p.id}
@@ -157,7 +150,7 @@ function RecreationalPage() {
                 <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                   <img src={p.coverImage} alt={p.name} loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
-                  <Badge className="absolute left-3 top-3 capitalize">{TYPE_LABEL[p.type]}</Badge>
+                  <Badge className="absolute left-3 top-3 capitalize">{t(`recreational.types.${p.type}`)}</Badge>
                   <Badge className="absolute right-3 top-3 gap-1 border-0 bg-background/90 text-foreground backdrop-blur">
                     <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {p.rating}
                   </Badge>
@@ -174,16 +167,16 @@ function RecreationalPage() {
                   </div>
                   <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                     <span className="text-lg font-bold text-primary">
-                      {formatBDT(p.pricePerNight)}<span className="text-xs font-normal text-muted-foreground">/night</span>
+                      {formatBDT(p.pricePerNight)}<span className="text-xs font-normal text-muted-foreground">{t("recreational.perNight")}</span>
                     </span>
                     <div className="flex gap-2">
                       <Button size="sm" asChild>
-                        <Link to="/recreational/$id" params={{ id: p.id }}>View Details</Link>
+                        <Link to="/recreational/$id" params={{ id: p.id }}>{t("common.viewDetails")}</Link>
                       </Button>
-                      <Button size="sm" variant="outline" aria-label="Save" className="shrink-0 px-3">
+                      <Button size="sm" variant="outline" aria-label={t("common.save")} className="shrink-0 px-3">
                         <Save className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="sm" variant="outline" aria-label="Call" className="shrink-0 px-3">
+                      <Button size="sm" variant="outline" aria-label={t("common.quickCall")} className="shrink-0 px-3">
                         <Phone className="h-3.5 w-3.5" />
                       </Button>
                     </div>

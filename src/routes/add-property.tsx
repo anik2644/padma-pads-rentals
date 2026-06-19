@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,11 +115,12 @@ const RENT_TYPES = [
   { value: "PER_ROOM", label: "Per Room" },
 ];
 
-const STEPS = ["Core Setup", "Details & Media", "Pricing", "Review"];
+const STEPS = ["core", "details", "pricing", "review"] as const;
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 function AddPropertyPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
   if (!user) {
@@ -127,16 +129,16 @@ function AddPropertyPage() {
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <LogIn className="h-7 w-7" />
         </div>
-        <h1 className="mt-4 text-2xl font-bold">Sign in to list a property</h1>
+        <h1 className="mt-4 text-2xl font-bold">{t("addProperty.signedOutTitle")}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          You need to be signed in to add a property listing.
+          {t("addProperty.signedOutSub")}
         </p>
         <div className="mt-6 flex justify-center gap-2">
           <Link
             to="/auth/login"
             className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
-            Log in
+            {t("common.login")}
           </Link>
         </div>
       </div>
@@ -147,6 +149,7 @@ function AddPropertyPage() {
 }
 
 function Wizard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [data, setData] = useState<WizardData>(INITIAL_WIZARD_DATA);
@@ -161,14 +164,14 @@ function Wizard() {
     try {
       if (data.useType === "RESIDENTIAL") {
         await submitResidentialProperty(data);
-        toast.success("Property listed successfully! It will appear after approval.");
+        toast.success(t("addProperty.listed"));
       } else {
         await new Promise((r) => setTimeout(r, 1200));
-        toast.success("Property submitted! (Mock — API coming soon)");
+        toast.success(t("addProperty.submittedMock"));
       }
       navigate({ to: "/residential" });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Submission failed";
+      const msg = err instanceof Error ? err.message : t("addProperty.submissionFailed");
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -176,16 +179,16 @@ function Wizard() {
   }
 
   function handleSaveDraft() {
-    toast.success("Draft saved locally.");
+    toast.success(t("addProperty.draftSaved"));
   }
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6 md:py-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold md:text-3xl">Add Property</h1>
+        <h1 className="text-2xl font-bold md:text-3xl">{t("addProperty.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Fill in the details to list your property on HomeBee.
+          {t("addProperty.subtitle")}
         </p>
       </div>
 
@@ -237,6 +240,7 @@ function Wizard() {
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 
 function ProgressBar({ current }: { current: number }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-0">
       {STEPS.map((label, i) => {
@@ -262,7 +266,7 @@ function ProgressBar({ current }: { current: number }) {
                   active ? "text-primary" : "text-muted-foreground",
                 )}
               >
-                {label}
+                {t(`addProperty.steps.${label}`)}
               </span>
             </div>
             {i < STEPS.length - 1 && (
@@ -342,14 +346,15 @@ function NullableBoolField({
   value: boolean | null;
   onChange: (v: boolean | null) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
       <div className="flex gap-2">
         {[
-          { v: true, label: "Yes" },
-          { v: false, label: "No" },
-          { v: null, label: "Unspecified" },
+          { v: true, label: t("addProperty.fields.yes") },
+          { v: false, label: t("addProperty.fields.no") },
+          { v: null, label: t("addProperty.fields.unspecified") },
         ].map((opt) => (
           <button
             key={String(opt.v)}
@@ -394,6 +399,7 @@ function MapLocationPicker({
   lngStr: string;
   onChange: (lat: string, lng: string) => void;
 }) {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const markerRef = useRef<LeafletMarker>(null);
 
@@ -448,12 +454,12 @@ function MapLocationPicker({
           </MapContainer>
         ) : (
           <div className="flex h-full items-center justify-center bg-muted text-sm text-muted-foreground">
-            Loading map…
+            {t("common.loading")}
           </div>
         )}
       </div>
       <p className="text-xs text-muted-foreground">
-        Click on the map or drag the marker to set the exact location.{" "}
+        {t("addProperty.mapHint", { defaultValue: "Click on the map or drag the marker to set the exact location." })}{" "}
         <span className="font-mono">
           {parseFloat(latStr).toFixed(6)}, {parseFloat(lngStr).toFixed(6)}
         </span>
@@ -466,7 +472,7 @@ function PageActions({
   onBack,
   onNext,
   onSaveDraft,
-  nextLabel = "Continue",
+  nextLabel,
   disabled,
 }: {
   onBack?: () => void;
@@ -475,22 +481,23 @@ function PageActions({
   nextLabel?: string;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="mt-8 flex flex-wrap items-center gap-3">
       {onBack && (
         <Button type="button" variant="outline" onClick={onBack} className="gap-2">
-          <ChevronLeft className="h-4 w-4" /> Back
+          <ChevronLeft className="h-4 w-4" /> {t("actions.back")}
         </Button>
       )}
       <div className="flex-1" />
       {onSaveDraft && (
         <Button type="button" variant="ghost" onClick={onSaveDraft}>
-          Save Draft
+          {t("actions.saveDraft")}
         </Button>
       )}
       {onNext && (
         <Button type="button" onClick={onNext} className="gap-2" disabled={disabled}>
-          {nextLabel} <ChevronRight className="h-4 w-4" />
+          {nextLabel ?? t("actions.continue")} <ChevronRight className="h-4 w-4" />
         </Button>
       )}
     </div>
@@ -510,16 +517,17 @@ function Page1({
   onNext: () => void;
   onSaveDraft: () => void;
 }) {
+  const { t } = useTranslation();
   function validate() {
-    if (!data.useType) return "Please select a use type.";
-    if (!data.propertyType) return "Please select a property type.";
-    if (!data.propertyName.trim()) return "Property name is required.";
-    if (!data.title.trim()) return "Listing title is required.";
-    if (!data.description.trim()) return "Description is required.";
-    if (!data.division) return "Division is required.";
-    if (!data.city.trim()) return "City is required.";
-    if (!data.area.trim()) return "Area is required.";
-    if (!data.fullAddress.trim()) return "Full address is required.";
+    if (!data.useType) return t("addProperty.validation.useType");
+    if (!data.propertyType) return t("addProperty.validation.propertyType");
+    if (!data.propertyName.trim()) return t("addProperty.validation.propertyName");
+    if (!data.title.trim()) return t("addProperty.validation.listingTitle");
+    if (!data.description.trim()) return t("addProperty.validation.description");
+    if (!data.division) return t("addProperty.validation.division");
+    if (!data.city.trim()) return t("addProperty.validation.city");
+    if (!data.area.trim()) return t("addProperty.validation.area");
+    if (!data.fullAddress.trim()) return t("addProperty.validation.fullAddress");
     return null;
   }
 
@@ -554,13 +562,13 @@ function Page1({
     <div className="space-y-8">
       {/* Use Type */}
       <section>
-        <SectionTitle>Use Type *</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.useType")}</SectionTitle>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
-            { value: "RESIDENTIAL", label: "Residential", icon: Home, desc: "Rooms, flats, hostels" },
-            { value: "COMMERCIAL", label: "Commercial", icon: Building2, desc: "Offices, shops, warehouses" },
-            { value: "RECREATIONAL", label: "Recreational", icon: Hotel, desc: "Hotels, resorts, guesthouses" },
-          ].map(({ value, label, icon: Icon, desc }) => (
+            { value: "RESIDENTIAL", icon: Home },
+            { value: "COMMERCIAL", icon: Building2 },
+            { value: "RECREATIONAL", icon: Hotel },
+          ].map(({ value, icon: Icon }) => (
             <button
               key={value}
               type="button"
@@ -574,8 +582,8 @@ function Page1({
             >
               <Icon className={cn("h-6 w-6", data.useType === value ? "text-primary" : "text-muted-foreground")} />
               <div>
-                <p className="font-semibold">{label}</p>
-                <p className="text-xs text-muted-foreground">{desc}</p>
+                <p className="font-semibold">{t(`addProperty.useTypes.${value}.label`)}</p>
+                <p className="text-xs text-muted-foreground">{t(`addProperty.useTypes.${value}.desc`)}</p>
               </div>
             </button>
           ))}
@@ -585,7 +593,7 @@ function Page1({
       {/* Property Type */}
       {data.useType && (
         <section>
-          <SectionTitle>Property Type *</SectionTitle>
+          <SectionTitle>{t("addProperty.sections.propertyType")}</SectionTitle>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {ptOptions.map(({ value, label }) => (
               <button
@@ -610,25 +618,25 @@ function Page1({
 
       {/* Property Identity */}
       <section>
-        <SectionTitle>Property Identity</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.identity")}</SectionTitle>
         <div className="space-y-4">
-          <Field label="Property Name" required>
+          <Field label={t("addProperty.fields.propertyName")} required>
             <Input
-              placeholder="e.g. Green View Hostel"
+              placeholder={t("addProperty.placeholders.propertyName")}
               value={data.propertyName}
               onChange={(e) => update({ propertyName: e.target.value })}
             />
           </Field>
-          <Field label="Listing Title" required>
+          <Field label={t("addProperty.fields.listingTitle")} required>
             <Input
-              placeholder="e.g. Comfortable hostel near university"
+              placeholder={t("addProperty.placeholders.listingTitle")}
               value={data.title}
               onChange={(e) => update({ title: e.target.value })}
             />
           </Field>
-          <Field label="Description" required>
+          <Field label={t("addProperty.fields.description")} required>
             <Textarea
-              placeholder="Describe the property, amenities, surroundings..."
+              placeholder={t("addProperty.placeholders.description")}
               rows={4}
               value={data.description}
               onChange={(e) => update({ description: e.target.value })}
@@ -641,13 +649,13 @@ function Page1({
 
       {/* Location */}
       <section>
-        <SectionTitle>Location</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.location")}</SectionTitle>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Division" required>
+            <Field label={t("addProperty.fields.division")} required>
               <Select value={data.division} onValueChange={(v) => update({ division: v })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select division" />
+                  <SelectValue placeholder={t("addProperty.placeholders.selectDivision")} />
                 </SelectTrigger>
                 <SelectContent>
                   {DIVISIONS.map((d) => (
@@ -658,39 +666,39 @@ function Page1({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="City" required>
+            <Field label={t("addProperty.fields.city")} required>
               <Input
-                placeholder="e.g. Dhaka"
+                placeholder={t("addProperty.placeholders.city")}
                 value={data.city}
                 onChange={(e) => update({ city: e.target.value })}
               />
             </Field>
           </div>
-          <Field label="Area" required>
+          <Field label={t("addProperty.fields.area")} required>
             <Input
-              placeholder="e.g. Mirpur"
+              placeholder={t("addProperty.placeholders.area")}
               value={data.area}
               onChange={(e) => update({ area: e.target.value })}
             />
           </Field>
-          <Field label="Full Address" required>
+          <Field label={t("addProperty.fields.fullAddress")} required>
             <Textarea
-              placeholder="House 12, Road 5, Mirpur, Dhaka"
+              placeholder={t("addProperty.placeholders.fullAddress")}
               rows={2}
               value={data.fullAddress}
               onChange={(e) => update({ fullAddress: e.target.value })}
             />
           </Field>
-          <Field label="Pin Location on Map">
+          <Field label={t("addProperty.fields.pinLocation")}>
             <MapLocationPicker
               latStr={data.latitude}
               lngStr={data.longitude}
               onChange={(lat, lng) => update({ latitude: lat, longitude: lng })}
             />
           </Field>
-          <Field label="Nearby Landmark">
+          <Field label={t("addProperty.fields.nearbyLandmark")}>
             <Input
-              placeholder="e.g. Near Mirpur 10 Metro"
+              placeholder={t("addProperty.placeholders.nearbyLandmark")}
               value={data.nearbyLandmark}
               onChange={(e) => update({ nearbyLandmark: e.target.value })}
             />
@@ -702,17 +710,17 @@ function Page1({
 
       {/* Contact Information */}
       <section>
-        <SectionTitle>Contact Information</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.contact")}</SectionTitle>
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Contact Person / Group Name">
+            <Field label={t("addProperty.fields.contactPerson")}>
               <Input
-                placeholder="e.g. Ahmed Properties"
+                placeholder={t("addProperty.placeholders.contactPerson")}
                 value={data.contactPerson}
                 onChange={(e) => update({ contactPerson: e.target.value })}
               />
             </Field>
-            <Field label="Mobile Number">
+            <Field label={t("addProperty.fields.mobile")}>
               <Input
                 type="tel"
                 placeholder="+8801712345678"
@@ -722,7 +730,7 @@ function Page1({
             </Field>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="WhatsApp Number">
+            <Field label={t("addProperty.fields.whatsapp")}>
               <Input
                 type="tel"
                 placeholder="+8801712345678"
@@ -730,10 +738,10 @@ function Page1({
                 onChange={(e) => update({ whatsapp: e.target.value })}
               />
             </Field>
-            <Field label="Email Address">
+            <Field label={t("addProperty.fields.email")}>
               <Input
                 type="email"
-                placeholder="contact@example.com"
+                placeholder={t("addProperty.placeholders.email")}
                 value={data.contactEmail}
                 onChange={(e) => update({ contactEmail: e.target.value })}
               />
@@ -744,7 +752,7 @@ function Page1({
 
       {/* Communication Preference */}
       <section>
-        <SectionTitle>Communication Preference</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.communication")}</SectionTitle>
         <div className="flex flex-wrap gap-2">
           {COMM_PREFS.map((pref) => {
             const checked = data.commPreferences.includes(pref);
@@ -770,7 +778,7 @@ function Page1({
 
       {/* Target Group */}
       <section>
-        <SectionTitle>Target Group</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.target")}</SectionTitle>
         <div className="flex flex-wrap gap-2">
           {TARGET_GROUPS.map(({ value, label }) => {
             const checked = data.targetGroup.includes(value);
@@ -814,19 +822,20 @@ function Page2({
   onNext: () => void;
   onSaveDraft: () => void;
 }) {
+  const { t } = useTranslation();
   function validate() {
-    if (!data.coverImageFile) return "Cover image is required.";
+    if (!data.coverImageFile) return t("addProperty.validation.cover");
     if (data.useType === "RESIDENTIAL") {
       const pt = data.propertyType;
       if (pt === "HOSTEL_MESS") {
-        if (!data.totalSeats) return "Total seats is required.";
-        if (!data.availableSeats) return "Available seats is required.";
+        if (!data.totalSeats) return t("addProperty.validation.totalSeats");
+        if (!data.availableSeats) return t("addProperty.validation.availableSeats");
       } else if (pt === "SHARED_ROOM") {
-        if (!data.totalBeds) return "Total beds is required.";
-        if (!data.availableBeds) return "Available beds is required.";
+        if (!data.totalBeds) return t("addProperty.validation.totalBeds");
+        if (!data.availableBeds) return t("addProperty.validation.availableBeds");
       } else if (pt === "FLAT" || pt === "APARTMENT") {
-        if (!data.bedrooms) return "Bedrooms is required.";
-        if (!data.bathrooms) return "Bathrooms is required.";
+        if (!data.bedrooms) return t("addProperty.validation.bedrooms");
+        if (!data.bathrooms) return t("addProperty.validation.bathrooms");
       }
     }
     return null;
@@ -845,7 +854,7 @@ function Page2({
     <div className="space-y-8">
       {/* Dynamic Property Details */}
       <section>
-        <SectionTitle>Property Details</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.details")}</SectionTitle>
         <PropertySpecsForm data={data} update={update} />
       </section>
 
@@ -853,7 +862,7 @@ function Page2({
 
       {/* Rules */}
       <section>
-        <SectionTitle>Rules</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.rules")}</SectionTitle>
         <RulesForm data={data} update={update} />
       </section>
 
@@ -861,7 +870,7 @@ function Page2({
 
       {/* Media Upload */}
       <section>
-        <SectionTitle>Media Upload</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.media")}</SectionTitle>
         <MediaUploadForm data={data} update={update} />
       </section>
 
@@ -903,10 +912,11 @@ function HostelSpecsForm({
   data: WizardData;
   update: (p: Partial<WizardData>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Total Seats" required>
+        <Field label={t("addProperty.fields.totalSeats")} required>
           <Input
             type="number"
             min={1}
@@ -914,7 +924,7 @@ function HostelSpecsForm({
             onChange={(e) => update({ totalSeats: e.target.value })}
           />
         </Field>
-        <Field label="Available Seats" required>
+        <Field label={t("addProperty.fields.availableSeats")} required>
           <Input
             type="number"
             min={0}
@@ -923,7 +933,7 @@ function HostelSpecsForm({
           />
         </Field>
       </div>
-      <Field label="Sharing Type" required>
+      <Field label={t("addProperty.fields.sharingType")} required>
         <Select value={data.sharingType} onValueChange={(v) => update({ sharingType: v })}>
           <SelectTrigger>
             <SelectValue />
@@ -938,11 +948,11 @@ function HostelSpecsForm({
         </Select>
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <SwitchField label="Bed Provided" checked={data.bedProvided} onChange={(v) => update({ bedProvided: v })} />
-        <SwitchField label="Table & Chair" checked={data.tableChairProvided} onChange={(v) => update({ tableChairProvided: v })} />
-        <SwitchField label="Attached Bathroom" checked={data.attachedBathroom} onChange={(v) => update({ attachedBathroom: v })} />
-        <SwitchField label="Food Included" checked={data.foodIncluded} onChange={(v) => update({ foodIncluded: v })} />
-        <SwitchField label="Wi-Fi Available" checked={data.wifiAvailable} onChange={(v) => update({ wifiAvailable: v })} />
+        <SwitchField label={t("addProperty.fields.bedProvided")} checked={data.bedProvided} onChange={(v) => update({ bedProvided: v })} />
+        <SwitchField label={t("addProperty.fields.tableChair")} checked={data.tableChairProvided} onChange={(v) => update({ tableChairProvided: v })} />
+        <SwitchField label={t("addProperty.fields.attachedBathroom")} checked={data.attachedBathroom} onChange={(v) => update({ attachedBathroom: v })} />
+        <SwitchField label={t("addProperty.fields.foodIncluded")} checked={data.foodIncluded} onChange={(v) => update({ foodIncluded: v })} />
+        <SwitchField label={t("addProperty.fields.wifi")} checked={data.wifiAvailable} onChange={(v) => update({ wifiAvailable: v })} />
       </div>
     </div>
   );
@@ -955,10 +965,11 @@ function SingleRoomSpecsForm({
   data: WizardData;
   update: (p: Partial<WizardData>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Room Size (sq ft)" hint="Optional">
+        <Field label={t("addProperty.fields.roomSize")} hint={t("addProperty.fields.optional")}>
           <Input
             type="number"
             min={0}
@@ -967,7 +978,7 @@ function SingleRoomSpecsForm({
             onChange={(e) => update({ roomSize: e.target.value })}
           />
         </Field>
-        <Field label="Floor Number" hint="Optional">
+        <Field label={t("addProperty.fields.floorNumber")} hint={t("addProperty.fields.optional")}>
           <Input
             type="number"
             min={0}
@@ -977,7 +988,7 @@ function SingleRoomSpecsForm({
           />
         </Field>
       </div>
-      <Field label="Kitchen Access" required>
+      <Field label={t("addProperty.fields.kitchenAccess")} required>
         <Select value={data.kitchenAccess} onValueChange={(v) => update({ kitchenAccess: v })}>
           <SelectTrigger>
             <SelectValue />
@@ -992,9 +1003,9 @@ function SingleRoomSpecsForm({
         </Select>
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <SwitchField label="Furnished" checked={data.furnished} onChange={(v) => update({ furnished: v })} />
-        <SwitchField label="Attached Bathroom" checked={data.attachedBathroom} onChange={(v) => update({ attachedBathroom: v })} />
-        <SwitchField label="Balcony" checked={data.balcony} onChange={(v) => update({ balcony: v })} />
+        <SwitchField label={t("addProperty.fields.furnished")} checked={data.furnished} onChange={(v) => update({ furnished: v })} />
+        <SwitchField label={t("addProperty.fields.attachedBathroom")} checked={data.attachedBathroom} onChange={(v) => update({ attachedBathroom: v })} />
+        <SwitchField label={t("addProperty.fields.balcony")} checked={data.balcony} onChange={(v) => update({ balcony: v })} />
       </div>
     </div>
   );
@@ -1007,10 +1018,11 @@ function SharedRoomSpecsForm({
   data: WizardData;
   update: (p: Partial<WizardData>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Total Beds" required>
+        <Field label={t("addProperty.fields.totalBeds")} required>
           <Input
             type="number"
             min={1}
@@ -1018,7 +1030,7 @@ function SharedRoomSpecsForm({
             onChange={(e) => update({ totalBeds: e.target.value })}
           />
         </Field>
-        <Field label="Available Beds" required>
+        <Field label={t("addProperty.fields.availableBeds")} required>
           <Input
             type="number"
             min={0}
@@ -1027,7 +1039,7 @@ function SharedRoomSpecsForm({
           />
         </Field>
       </div>
-      <Field label="Sharing Type" required>
+      <Field label={t("addProperty.fields.sharingType")} required>
         <Select value={data.sharingType} onValueChange={(v) => update({ sharingType: v })}>
           <SelectTrigger>
             <SelectValue />
@@ -1042,7 +1054,7 @@ function SharedRoomSpecsForm({
         </Select>
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Room Size (sq ft)" hint="Optional">
+        <Field label={t("addProperty.fields.roomSize")} hint={t("addProperty.fields.optional")}>
           <Input
             type="number"
             min={0}
@@ -1051,7 +1063,7 @@ function SharedRoomSpecsForm({
             onChange={(e) => update({ roomSize: e.target.value })}
           />
         </Field>
-        <Field label="Floor Number" hint="Optional">
+        <Field label={t("addProperty.fields.floorNumber")} hint={t("addProperty.fields.optional")}>
           <Input
             type="number"
             min={0}
@@ -1061,7 +1073,7 @@ function SharedRoomSpecsForm({
           />
         </Field>
       </div>
-      <Field label="Kitchen Access" required>
+      <Field label={t("addProperty.fields.kitchenAccess")} required>
         <Select value={data.kitchenAccess} onValueChange={(v) => update({ kitchenAccess: v })}>
           <SelectTrigger>
             <SelectValue />
@@ -1076,10 +1088,10 @@ function SharedRoomSpecsForm({
         </Select>
       </Field>
       <div className="grid gap-3 sm:grid-cols-2">
-        <SwitchField label="Bed Provided" checked={data.sharedBedProvided} onChange={(v) => update({ sharedBedProvided: v })} />
-        <SwitchField label="Furnished" checked={data.furnished} onChange={(v) => update({ furnished: v })} />
-        <SwitchField label="Attached Bathroom" checked={data.attachedBathroom} onChange={(v) => update({ attachedBathroom: v })} />
-        <SwitchField label="Balcony" checked={data.balcony} onChange={(v) => update({ balcony: v })} />
+        <SwitchField label={t("addProperty.fields.bedProvided")} checked={data.sharedBedProvided} onChange={(v) => update({ sharedBedProvided: v })} />
+        <SwitchField label={t("addProperty.fields.furnished")} checked={data.furnished} onChange={(v) => update({ furnished: v })} />
+        <SwitchField label={t("addProperty.fields.attachedBathroom")} checked={data.attachedBathroom} onChange={(v) => update({ attachedBathroom: v })} />
+        <SwitchField label={t("addProperty.fields.balcony")} checked={data.balcony} onChange={(v) => update({ balcony: v })} />
       </div>
     </div>
   );
@@ -1092,10 +1104,11 @@ function FlatSpecsForm({
   data: WizardData;
   update: (p: Partial<WizardData>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Bedrooms" required>
+        <Field label={t("addProperty.fields.bedrooms")} required>
           <Input
             type="number"
             min={0}
@@ -1103,7 +1116,7 @@ function FlatSpecsForm({
             onChange={(e) => update({ bedrooms: e.target.value })}
           />
         </Field>
-        <Field label="Bathrooms" required>
+        <Field label={t("addProperty.fields.bathrooms")} required>
           <Input
             type="number"
             min={0}
@@ -1111,7 +1124,7 @@ function FlatSpecsForm({
             onChange={(e) => update({ bathrooms: e.target.value })}
           />
         </Field>
-        <Field label="Balconies">
+        <Field label={t("addProperty.fields.balconies")}>
           <Input
             type="number"
             min={0}
@@ -1121,7 +1134,7 @@ function FlatSpecsForm({
         </Field>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Kitchens">
+        <Field label={t("addProperty.fields.kitchens")}>
           <Input
             type="number"
             min={0}
@@ -1129,7 +1142,7 @@ function FlatSpecsForm({
             onChange={(e) => update({ kitchen: e.target.value })}
           />
         </Field>
-        <Field label="Floor Number" hint="Optional">
+        <Field label={t("addProperty.fields.floorNumber")} hint={t("addProperty.fields.optional")}>
           <Input
             type="number"
             min={0}
@@ -1138,7 +1151,7 @@ function FlatSpecsForm({
             onChange={(e) => update({ floorNumber: e.target.value })}
           />
         </Field>
-        <Field label="Square Feet" hint="Optional">
+        <Field label={t("addProperty.fields.squareFeet")} hint={t("addProperty.fields.optional")}>
           <Input
             type="number"
             min={0}
@@ -1149,10 +1162,10 @@ function FlatSpecsForm({
         </Field>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <SwitchField label="Drawing Room" checked={data.drawingRoom} onChange={(v) => update({ drawingRoom: v })} />
-        <SwitchField label="Dining Room" checked={data.dining} onChange={(v) => update({ dining: v })} />
-        <SwitchField label="Lift" checked={data.lift} onChange={(v) => update({ lift: v })} />
-        <SwitchField label="Parking" checked={data.parking} onChange={(v) => update({ parking: v })} />
+        <SwitchField label={t("addProperty.fields.drawingRoom")} checked={data.drawingRoom} onChange={(v) => update({ drawingRoom: v })} />
+        <SwitchField label={t("addProperty.fields.diningRoom")} checked={data.dining} onChange={(v) => update({ dining: v })} />
+        <SwitchField label={t("addProperty.fields.lift")} checked={data.lift} onChange={(v) => update({ lift: v })} />
+        <SwitchField label={t("addProperty.fields.parking")} checked={data.parking} onChange={(v) => update({ parking: v })} />
       </div>
     </div>
   );
@@ -1408,6 +1421,7 @@ function MediaUploadForm({
   data: WizardData;
   update: (p: Partial<WizardData>) => void;
 }) {
+  const { t } = useTranslation();
   const coverRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<HTMLInputElement>(null);
   const videosRef = useRef<HTMLInputElement>(null);
@@ -1416,7 +1430,7 @@ function MediaUploadForm({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file.");
+      toast.error(t("addProperty.media.selectImage"));
       return;
     }
     const preview = URL.createObjectURL(file);
@@ -1472,7 +1486,7 @@ function MediaUploadForm({
       {/* Cover Image */}
       <div>
         <Label className="mb-2 block">
-          Cover Image <span className="text-destructive">*</span>
+          {t("addProperty.fields.coverImage")} <span className="text-destructive">*</span>
         </Label>
         <input
           ref={coverRef}
@@ -1485,7 +1499,7 @@ function MediaUploadForm({
           <div className="relative">
             <img
               src={data.coverImagePreview}
-              alt="Cover"
+              alt={t("addProperty.fields.coverImage")}
               className="h-48 w-full rounded-2xl object-cover"
             />
             <button
@@ -1500,7 +1514,7 @@ function MediaUploadForm({
             </button>
             <div className="mt-2">
               <Input
-                placeholder="Caption (optional)"
+                placeholder={t("addProperty.fields.captionOptional")}
                 value={data.coverImageCaption}
                 onChange={(e) => update({ coverImageCaption: e.target.value })}
               />
@@ -1513,22 +1527,22 @@ function MediaUploadForm({
             className="flex h-48 w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50"
           >
             <ImagePlus className="h-10 w-10" />
-            <span className="text-sm font-medium">Click to upload cover image</span>
-            <span className="text-xs">PNG, JPG, WEBP accepted</span>
+            <span className="text-sm font-medium">{t("addProperty.media.uploadCover")}</span>
+            <span className="text-xs">{t("addProperty.media.acceptedImages")}</span>
           </button>
         )}
       </div>
 
       {/* Photo Gallery */}
       <div>
-        <Label className="mb-2 block">Photo Gallery</Label>
+        <Label className="mb-2 block">{t("addProperty.fields.photoGallery")}</Label>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {data.photoFiles.map((p, i) => (
             <div key={i} className="space-y-1.5">
               <div className="relative">
                 <img
                   src={p.preview}
-                  alt={`Photo ${i + 1}`}
+                alt={`${t("addProperty.fields.photoGallery")} ${i + 1}`}
                   className="h-28 w-full rounded-xl object-cover"
                 />
                 <button
@@ -1541,7 +1555,7 @@ function MediaUploadForm({
               </div>
               <Input
                 className="h-7 text-xs"
-                placeholder="Caption"
+                placeholder={t("addProperty.fields.caption")}
                 value={p.caption}
                 onChange={(e) => updatePhotoCaption(i, e.target.value)}
               />
@@ -1553,7 +1567,7 @@ function MediaUploadForm({
             className="flex h-28 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50"
           >
             <Upload className="h-6 w-6" />
-            <span className="text-xs">Add photos</span>
+            <span className="text-xs">{t("addProperty.media.addPhotos")}</span>
           </button>
         </div>
         <input
@@ -1568,7 +1582,7 @@ function MediaUploadForm({
 
       {/* Video Upload */}
       <div>
-        <Label className="mb-2 block">Videos (Optional)</Label>
+        <Label className="mb-2 block">{t("addProperty.fields.videosOptional")}</Label>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {data.videoFiles.map((v, i) => (
             <div key={i} className="space-y-1.5">
@@ -1589,7 +1603,7 @@ function MediaUploadForm({
               </div>
               <Input
                 className="h-7 text-xs"
-                placeholder="Caption"
+                placeholder={t("addProperty.fields.caption")}
                 value={v.caption}
                 onChange={(e) => updateVideoCaption(i, e.target.value)}
               />
@@ -1601,7 +1615,7 @@ function MediaUploadForm({
             className="flex h-28 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:bg-muted/50"
           >
             <Video className="h-6 w-6" />
-            <span className="text-xs">Add videos</span>
+            <span className="text-xs">{t("addProperty.media.addVideos")}</span>
           </button>
         </div>
         <input
@@ -1632,16 +1646,17 @@ function Page3({
   onNext: () => void;
   onSaveDraft: () => void;
 }) {
+  const { t } = useTranslation();
   function validate() {
     const ut = data.useType;
     const pt = data.propertyType;
     if (ut === "RESIDENTIAL") {
-      if (pt === "HOSTEL_MESS" && !data.rentPerSeat) return "Rent per seat is required.";
+      if (pt === "HOSTEL_MESS" && !data.rentPerSeat) return t("addProperty.validation.rentSeat");
       if (pt !== "HOSTEL_MESS" && ut === "RESIDENTIAL" && !data.monthlyRent)
-        return "Monthly rent is required.";
+        return t("addProperty.validation.monthlyRent");
     }
-    if (ut === "RECREATIONAL" && !data.pricePerNight) return "Price per night is required.";
-    if (ut === "COMMERCIAL" && !data.monthlyRent) return "Monthly rent is required.";
+    if (ut === "RECREATIONAL" && !data.pricePerNight) return t("addProperty.validation.priceNight");
+    if (ut === "COMMERCIAL" && !data.monthlyRent) return t("addProperty.validation.monthlyRent");
     return null;
   }
 
@@ -1657,7 +1672,7 @@ function Page3({
   return (
     <div className="space-y-8">
       <section>
-        <SectionTitle>Pricing / Rental Details</SectionTitle>
+        <SectionTitle>{t("addProperty.sections.pricing")}</SectionTitle>
         <RentalForm data={data} update={update} />
       </section>
 
@@ -1831,18 +1846,19 @@ function CommonRentalFields({
   update: (p: Partial<WizardData>) => void;
   showNegotiable?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <>
-      <Field label="Available From">
+      <Field label={t("addProperty.fields.availableFrom")}>
         <Input type="date" value={data.availableFrom} onChange={(e) => update({ availableFrom: e.target.value })} />
       </Field>
       {showNegotiable && (
-        <SwitchField label="Negotiable" checked={data.negotiable} onChange={(v) => update({ negotiable: v })} />
+        <SwitchField label={t("addProperty.fields.negotiable")} checked={data.negotiable} onChange={(v) => update({ negotiable: v })} />
       )}
-      <Field label="Remarks">
+      <Field label={t("addProperty.fields.remarks")}>
         <Textarea
           rows={2}
-          placeholder="Any additional notes..."
+          placeholder={t("addProperty.placeholders.remarks")}
           value={data.remarks}
           onChange={(e) => update({ remarks: e.target.value })}
         />
@@ -1868,6 +1884,7 @@ function Page4({
   onEditPage: (page: number) => void;
   submitting: boolean;
 }) {
+  const { t } = useTranslation();
   const ptLabel =
     [...Object.values(PROPERTY_TYPES)]
       .flat()
@@ -1877,12 +1894,13 @@ function Page4({
     <div className="space-y-6">
       {data.useType !== "RESIDENTIAL" && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-          <strong>Note:</strong> {data.useType === "COMMERCIAL" ? "Commercial" : "Recreational"} property
-          submission is in mock mode. The listing will not be stored in the backend yet.
+          <strong>{t("addProperty.review.note")}</strong> {t("addProperty.review.mockMode", {
+            type: t(`addProperty.useTypes.${data.useType}.label`),
+          })}
         </div>
       )}
 
-      <ReviewSection title="Property Summary" onEdit={() => onEditPage(1)}>
+      <ReviewSection title={t("addProperty.review.propertySummary")} onEdit={() => onEditPage(1)}>
         <ReviewRow label="Use Type" value={data.useType} />
         <ReviewRow label="Property Type" value={ptLabel} />
         <ReviewRow label="Property Name" value={data.propertyName} />
@@ -1937,7 +1955,7 @@ function Page4({
         <div className="space-y-3">
           {data.coverImagePreview && (
             <div>
-              <p className="mb-1 text-xs text-muted-foreground">Cover Image</p>
+              <p className="mb-1 text-xs text-muted-foreground">{t("addProperty.review.coverImage")}</p>
               <img
                 src={data.coverImagePreview}
                 alt="Cover"
@@ -1981,19 +1999,19 @@ function Page4({
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
         <Button type="button" variant="outline" onClick={onBack} className="gap-2">
-          <ChevronLeft className="h-4 w-4" /> Back
+          <ChevronLeft className="h-4 w-4" /> {t("actions.back")}
         </Button>
         <div className="flex-1" />
         <Button type="button" variant="ghost" onClick={onSaveDraft}>
-          Save Draft
+          {t("actions.saveDraft")}
         </Button>
         <Button type="button" onClick={onPublish} disabled={submitting} className="gap-2">
           {submitting ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Publishing...
+              <Loader2 className="h-4 w-4 animate-spin" /> {t("addProperty.review.publishing")}
             </>
           ) : (
-            "Publish Listing"
+            t("addProperty.review.publish")
           )}
         </Button>
       </div>
@@ -2010,12 +2028,13 @@ function ReviewSection({
   children: React.ReactNode;
   onEdit: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-semibold text-foreground">{title}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onEdit} className="h-7 text-xs">
-          Edit
+          {t("actions.edit")}
         </Button>
       </div>
       {children}
@@ -2083,30 +2102,31 @@ function PricingReview({ data }: { data: WizardData }) {
 }
 
 function ValidationSummary({ data }: { data: WizardData }) {
+  const { t } = useTranslation();
   const issues: string[] = [];
 
-  if (!data.coverImageFile) issues.push("Cover image is missing.");
-  if (!data.propertyName.trim()) issues.push("Property name is missing.");
-  if (!data.title.trim()) issues.push("Listing title is missing.");
-  if (!data.fullAddress.trim()) issues.push("Full address is missing.");
+  if (!data.coverImageFile) issues.push(t("addProperty.validation.coverMissing"));
+  if (!data.propertyName.trim()) issues.push(t("addProperty.validation.propertyNameMissing"));
+  if (!data.title.trim()) issues.push(t("addProperty.validation.listingTitleMissing"));
+  if (!data.fullAddress.trim()) issues.push(t("addProperty.validation.fullAddressMissing"));
   if (data.useType === "RESIDENTIAL") {
     const pt = data.propertyType;
-    if (pt === "HOSTEL_MESS" && !data.rentPerSeat) issues.push("Rent per seat is missing.");
-    if (pt !== "HOSTEL_MESS" && !data.monthlyRent) issues.push("Monthly rent is missing.");
+    if (pt === "HOSTEL_MESS" && !data.rentPerSeat) issues.push(t("addProperty.validation.rentSeatMissing"));
+    if (pt !== "HOSTEL_MESS" && !data.monthlyRent) issues.push(t("addProperty.validation.monthlyRentMissing"));
   }
 
   if (issues.length === 0) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/5 px-4 py-3 text-sm text-green-700 dark:text-green-400">
         <Check className="h-4 w-4 shrink-0" />
-        All required fields are complete. Ready to publish!
+        {t("addProperty.review.ready")}
       </div>
     );
   }
 
   return (
     <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-      <p className="font-semibold">Please fix these issues before publishing:</p>
+      <p className="font-semibold">{t("addProperty.review.fixIssues")}</p>
       <ul className="mt-1 list-inside list-disc space-y-0.5">
         {issues.map((i, idx) => (
           <li key={idx}>{i}</li>

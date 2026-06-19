@@ -32,7 +32,7 @@ export function Navbar() {
               to="/add-property"
               className="hidden h-9 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-md ring-2 ring-primary/20 hover:bg-primary/90 hover:shadow-lg sm:inline-flex"
             >
-              <Plus className="h-4 w-4" /> Add
+              <Plus className="h-4 w-4" /> {t("common.addProperty")}
             </Link>
           )}
           {user ? (
@@ -40,7 +40,7 @@ export function Navbar() {
               <Link
                 to="/notifications"
                 className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-foreground hover:bg-accent"
-                aria-label="Notifications"
+                aria-label={t("common.notifications")}
               >
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />

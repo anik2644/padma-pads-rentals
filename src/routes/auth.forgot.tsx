@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Mail, Phone, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ type Stage = "method" | "target" | "verify" | "reset";
 type Method = "email" | "phone";
 
 function ForgotPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("method");
   const [method, setMethod] = useState<Method>("email");
@@ -26,12 +28,12 @@ function ForgotPage() {
 
   async function handleSavePassword(e: React.FormEvent) {
     e.preventDefault();
-    if (pw.length < 6) return toast.error("Password must be at least 6 characters");
-    if (pw !== pw2) return toast.error("Passwords don't match");
+    if (pw.length < 6) return toast.error(t("profile.passwordMin"));
+    if (pw !== pw2) return toast.error(t("profile.passwordMismatch"));
     setSaving(true);
     try {
       await mockAuth.resetPassword(pw);
-      toast.success("Password updated — you can now log in.");
+      toast.success(t("auth.forgot.passwordUpdatedLogin"));
       navigate({ to: "/auth/login" });
     } finally {
       setSaving(false);
@@ -41,22 +43,22 @@ function ForgotPage() {
   return (
     <div className="space-y-5">
       <Link to="/auth/login" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-3 w-3" /> Back to login
+        <ArrowLeft className="h-3 w-3" /> {t("auth.forgot.back")}
       </Link>
 
       {stage === "method" && (
         <>
           <div>
-            <h1 className="text-2xl font-bold">Forgot password?</h1>
+            <h1 className="text-2xl font-bold">{t("auth.forgot.title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Choose how you'd like to recover your account.
+              {t("auth.forgot.sub")}
             </p>
           </div>
           <div className="grid gap-3">
             <MethodCard
               icon={<Mail className="h-5 w-5" />}
-              label="Send email link"
-              sub="We'll email you a 6-digit code."
+              label={t("auth.forgot.emailLink")}
+              sub={t("auth.forgot.emailLinkSub")}
               onClick={() => {
                 setMethod("email");
                 setStage("target");
@@ -64,8 +66,8 @@ function ForgotPage() {
             />
             <MethodCard
               icon={<Phone className="h-5 w-5" />}
-              label="Send phone OTP"
-              sub="We'll SMS you a 6-digit code."
+              label={t("auth.forgot.phoneOtp")}
+              sub={t("auth.forgot.phoneOtpSub")}
               onClick={() => {
                 setMethod("phone");
                 setStage("target");
@@ -86,14 +88,14 @@ function ForgotPage() {
         >
           <div>
             <h1 className="text-2xl font-bold">
-              {method === "email" ? "Enter your email" : "Enter your phone"}
+              {t(method === "email" ? "auth.forgot.enterEmail" : "auth.forgot.enterPhone")}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              We'll send a verification code to recover your account.
+              {t("auth.forgot.sendSub")}
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label>{method === "email" ? "Email address" : "Phone number"}</Label>
+            <Label>{t(method === "email" ? "auth.form.emailAddress" : "profile.phoneNumber")}</Label>
             <Input
               type={method === "email" ? "email" : "tel"}
               placeholder={method === "email" ? "you@example.com" : "+8801712345678"}
@@ -103,7 +105,7 @@ function ForgotPage() {
             />
           </div>
           <Button type="submit" className="h-11 w-full">
-            Send code
+            {t("auth.forgot.sendCode")}
           </Button>
         </form>
       )}
@@ -121,22 +123,22 @@ function ForgotPage() {
       {stage === "reset" && (
         <form onSubmit={handleSavePassword} className="space-y-4">
           <div>
-            <h1 className="text-2xl font-bold">Set a new password</h1>
+            <h1 className="text-2xl font-bold">{t("auth.forgot.resetTitle")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Use at least 6 characters. Don't reuse old passwords.
+              {t("auth.forgot.resetSub")}
             </p>
           </div>
           <div className="space-y-1.5">
-            <Label>New password</Label>
+            <Label>{t("profile.newPassword")}</Label>
             <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="h-11" />
           </div>
           <div className="space-y-1.5">
-            <Label>Confirm password</Label>
+            <Label>{t("profile.confirmPassword")}</Label>
             <Input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} className="h-11" />
           </div>
           <Button type="submit" className="h-11 w-full" disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Update password
+            {t("profile.updatePassword")}
           </Button>
         </form>
       )}

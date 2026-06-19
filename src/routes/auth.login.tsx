@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { SocialButtons } from "@/components/auth/SocialButtons";
 import { getFirebaseAuth } from "@/lib/firebase";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/auth/login")({
 });
 
 function LoginPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
   const setToken = useAuthStore((s) => s.setToken);
@@ -27,7 +29,7 @@ function LoginPage() {
     try {
       const auth = getFirebaseAuth();
       if (!auth) {
-        toast.error("Firebase is not configured. Add your VITE_FIREBASE_* values.");
+        toast.error(t("auth.firebaseMissing"));
         return;
       }
       const credential = await signInWithEmailAndPassword(auth, email, password);
@@ -39,11 +41,11 @@ function LoginPage() {
       ]);
       setUser(storeData.user, storeData.profileCompleted);
       setToken(token);
-      toast.success(`Welcome back, ${storeData.user.name.split(" ")[0]}`);
+      toast.success(t("auth.welcomeBack", { name: storeData.user.name.split(" ")[0] }));
       navigate({ to: "/" });
     } catch (err) {
       console.error("[login] email/password error:", err);
-      toast.error(firebaseAuthMessage(err));
+      toast.error(firebaseAuthMessage(err, t));
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +56,7 @@ function LoginPage() {
     try {
       const auth = getFirebaseAuth();
       if (!auth) {
-        toast.error("Firebase is not configured. Add your VITE_FIREBASE_* values.");
+        toast.error(t("auth.firebaseMissing"));
         return;
       }
       const credential = await signInWithPopup(auth, new GoogleAuthProvider());
@@ -68,10 +70,10 @@ function LoginPage() {
       ]);
       setUser(storeData.user, storeData.profileCompleted);
       setToken(token);
-      toast.success(`Welcome back, ${storeData.user.name.split(" ")[0]}`);
+      toast.success(t("auth.welcomeBack", { name: storeData.user.name.split(" ")[0] }));
       navigate({ to: "/" });
     } catch (err) {
-      toast.error(firebaseAuthMessage(err));
+      toast.error(firebaseAuthMessage(err, t));
     } finally {
       setSubmitting(false);
     }
@@ -80,14 +82,14 @@ function LoginPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Log in to continue browsing homes.</p>
+        <h1 className="text-2xl font-bold">{t("auth.loginTitle")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("auth.loginSub")}</p>
       </div>
       <AuthForm onSubmit={handleLogin} submitting={submitting} />
       <p className="text-center text-xs text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        {t("auth.noAccount")}{" "}
         <Link to="/auth/signup" className="font-medium text-primary hover:underline">
-          Sign up
+          {t("common.signup")}
         </Link>
       </p>
       <Divider />
@@ -96,7 +98,7 @@ function LoginPage() {
   );
 }
 
-function firebaseAuthMessage(err: unknown) {
+function firebaseAuthMessage(err: unknown, t: (key: string, options?: Record<string, unknown>) => string) {
   const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
   // Wrong credentials — Firebase SDK 10+ unifies these into invalid-credential
   if (
@@ -105,25 +107,26 @@ function firebaseAuthMessage(err: unknown) {
     code === "auth/user-not-found" ||
     code === "auth/wrong-password"
   )
-    return "Invalid email or password.";
-  if (code === "auth/user-disabled") return "This account has been disabled.";
-  if (code === "auth/too-many-requests") return "Too many attempts. Try again later.";
-  if (code === "auth/network-request-failed") return "Network error. Check your connection.";
-  if (code === "auth/popup-closed-by-user") return "Google sign-in was closed.";
-  if (code === "auth/popup-blocked") return "Popup was blocked. Allow popups and try again.";
+    return t("auth.errors.invalidCredentials");
+  if (code === "auth/user-disabled") return t("auth.errors.disabled");
+  if (code === "auth/too-many-requests") return t("auth.errors.tooMany");
+  if (code === "auth/network-request-failed") return t("auth.errors.network");
+  if (code === "auth/popup-closed-by-user") return t("auth.errors.popupClosed");
+  if (code === "auth/popup-blocked") return t("auth.errors.popupBlocked");
   if (code === "auth/account-exists-with-different-credential")
-    return "An account with this email already exists using a different sign-in method.";
+    return t("auth.errors.differentCredential");
   if (code === "auth/unauthorized-domain")
-    return "This domain is not authorized in Firebase Authentication settings.";
+    return t("auth.errors.unauthorizedDomain");
   // Surface the raw code in development so it's easy to add new cases
-  return code ? `Login failed (${code}).` : "Login failed. Please try again.";
+  return code ? t("auth.errors.loginFailedCode", { code }) : t("auth.errors.loginFailed");
 }
 
 function Divider() {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 text-xs text-muted-foreground">
       <div className="h-px flex-1 bg-border" />
-      <span>or</span>
+      <span>{t("auth.or")}</span>
       <div className="h-px flex-1 bg-border" />
     </div>
   );

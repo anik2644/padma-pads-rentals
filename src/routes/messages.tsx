@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { MoreVertical, Phone, Send } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import {
   type PropertyMessage,
 } from "@/lib/property-messages";
 import { useAuthStore } from "@/store/authStore";
+import { useLanguageStore } from "@/store/languageStore";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/messages")({
@@ -43,6 +45,8 @@ interface MessageThread {
 }
 
 function MessagesPage() {
+  const { t } = useTranslation();
+  const { lang } = useLanguageStore();
   const search = Route.useSearch();
   const user = useAuthStore((s) => s.user);
   const [apiMessages, setApiMessages] = useState<PropertyMessage[]>([]);
@@ -59,7 +63,7 @@ function MessagesPage() {
       });
       setApiMessages(res.items);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not load messages");
+      toast.error(err instanceof Error ? err.message : t("messages.loadError"));
     } finally {
       setLoading(false);
     }
@@ -78,10 +82,10 @@ function MessagesPage() {
         advertisementId: search.advertisementId,
         propertyId: search.propertyId,
         receiverId: search.receiverId,
-        name: search.owner ?? "Property owner",
+        name: search.owner ?? t("messages.owner"),
         property: search.property ?? search.propertyId,
-        lastMessage: "Start a conversation about this property.",
-        time: "Now",
+        lastMessage: t("messages.start"),
+        time: t("messages.now"),
         unread: 0,
         avatar: search.avatar || initialsFrom(search.owner ?? "Owner"),
         phone: search.phone,
@@ -97,10 +101,10 @@ function MessagesPage() {
         advertisementId: message.advertisementId,
         propertyId: message.propertyId,
         receiverId: peerId,
-        name: existing?.name ?? `User ${peerId.slice(0, 8)}`,
+        name: existing?.name ?? t("messages.user", { id: peerId.slice(0, 8) }),
         property: existing?.property ?? message.propertyId,
         lastMessage: message.message,
-        time: formatTime(message.audit.createdAt),
+        time: formatTime(message.audit.createdAt, lang),
         unread: message.isRead ? 0 : 1,
         avatar: existing?.avatar ?? initialsFrom(peerId),
         phone: existing?.phone,
@@ -136,7 +140,7 @@ function MessagesPage() {
     e.preventDefault();
     if (!active || !draft.trim()) return;
     if (!active.receiverId) {
-      toast.error("Receiver is missing for this conversation.");
+      toast.error(t("messages.receiverMissing"));
       return;
     }
 
@@ -152,7 +156,7 @@ function MessagesPage() {
       setDraft("");
       await refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not send message");
+      toast.error(err instanceof Error ? err.message : t("messages.sendError"));
     }
   }
 
@@ -161,8 +165,8 @@ function MessagesPage() {
       <div className="grid h-[calc(100vh-8rem)] grid-cols-1 overflow-hidden border-border bg-card md:grid-cols-[320px_1fr] md:rounded-3xl md:border md:shadow-card">
         <aside className="border-r border-border">
           <div className="border-b border-border p-4">
-            <h1 className="text-xl font-bold">Messages</h1>
-            {loading && <p className="text-xs text-muted-foreground">Loading...</p>}
+            <h1 className="text-xl font-bold">{t("messages.title")}</h1>
+            {loading && <p className="text-xs text-muted-foreground">{t("common.loading")}</p>}
           </div>
           <ul>
             {threads.map((thread) => (
@@ -210,7 +214,7 @@ function MessagesPage() {
               <div className="flex-1 space-y-3 overflow-y-auto bg-background p-4">
                 {activeMessages.length === 0 && (
                   <p className="rounded-2xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-                    No messages yet. Send the first message.
+                    {t("messages.emptyThread")}
                   </p>
                 )}
                 {activeMessages.map((message) => {
@@ -230,7 +234,7 @@ function MessagesPage() {
                             mine ? "text-primary-foreground/70" : "text-muted-foreground",
                           )}
                         >
-                          {formatTime(message.audit.createdAt)}
+                          {formatTime(message.audit.createdAt, lang)}
                         </div>
                       </div>
                     </div>
@@ -239,13 +243,13 @@ function MessagesPage() {
               </div>
 
               <form className="flex items-center gap-2 border-t border-border p-3" onSubmit={send}>
-                <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Type a message..." className="h-11" />
+                <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={t("messages.placeholder")} className="h-11" />
                 <Button type="submit" size="icon" className="h-11 w-11"><Send className="h-4 w-4" /></Button>
               </form>
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground">
-              No conversations yet.
+              {t("messages.noConversations")}
             </div>
           )}
         </section>
@@ -259,8 +263,8 @@ function initialsFrom(name: string) {
   return `${parts[0]?.[0] ?? "H"}${parts[1]?.[0] ?? "B"}`.toUpperCase();
 }
 
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
+function formatTime(value: string, lang: "en" | "bn") {
+  return new Intl.DateTimeFormat(lang, {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));

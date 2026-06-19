@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { MOCK_OTP, mockAuth } from "@/lib/mock-auth";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export type VerificationType = "email" | "phone";
 
@@ -24,6 +25,7 @@ export function VerificationComponent({
   onCancel,
   title,
 }: Props) {
+  const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [countdown, setCountdown] = useState(90);
   const [resends, setResends] = useState(0);
@@ -34,7 +36,7 @@ export function VerificationComponent({
 
   useEffect(() => {
     void mockAuth.sendOtp();
-    toast.info(`Mock ${type === "email" ? "email link" : "OTP"} sent — use code ${MOCK_OTP}`);
+    toast.info(t("auth.verify.mockSent", { method: t(type === "email" ? "auth.verify.emailLink" : "auth.verify.otp"), code: MOCK_OTP }));
     startCountdown();
     return () => stopCountdown();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,11 +71,11 @@ export function VerificationComponent({
     setAttempts((a) => a + 1);
     if (ok) {
       setStatus("verified");
-      toast.success("Verified");
+      toast.success(t("auth.verify.verified"));
       setTimeout(onVerified, 400);
     } else {
       setStatus("error");
-      setError(`Invalid code. Try ${MOCK_OTP}.`);
+      setError(t("auth.verify.invalid", { code: MOCK_OTP }));
     }
   }
 
@@ -81,7 +83,7 @@ export function VerificationComponent({
     if (countdown > 0) return;
     setResends((r) => r + 1);
     await mockAuth.sendOtp();
-    toast.info(`Resent — use code ${MOCK_OTP}`);
+    toast.info(t("auth.verify.resent", { code: MOCK_OTP }));
     startCountdown();
   }
 
@@ -92,10 +94,10 @@ export function VerificationComponent({
     <div className="space-y-5">
       <div className="text-center">
         <h3 className="text-lg font-semibold">
-          {title ?? (type === "email" ? "Verify your email" : "Verify your phone")}
+          {title ?? t(type === "email" ? "auth.verify.verifyEmail" : "auth.verify.verifyPhone")}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          We sent a 6-digit code to{" "}
+          {t("auth.verify.sentTo")}{" "}
           <span className="font-medium text-foreground">{target}</span>
         </p>
       </div>
@@ -119,7 +121,7 @@ export function VerificationComponent({
 
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">
-          Attempts: {attempts} · Resends: {resends}
+          {t("auth.verify.attempts", { attempts })} · {t("auth.verify.resends", { resends })}
         </span>
         <button
           type="button"
@@ -128,7 +130,7 @@ export function VerificationComponent({
           className="inline-flex items-center gap-1 font-medium text-primary disabled:cursor-not-allowed disabled:text-muted-foreground"
         >
           <RefreshCw className="h-3 w-3" />
-          {countdown > 0 ? `Resend in ${mm}:${ss}` : "Resend code"}
+          {countdown > 0 ? t("auth.verify.resendIn", { time: `${mm}:${ss}` }) : t("auth.verify.resendCode")}
         </button>
       </div>
 
@@ -139,24 +141,24 @@ export function VerificationComponent({
       )}
       {status === "verified" && (
         <p className="flex items-center gap-2 rounded-md bg-secondary/15 px-3 py-2 text-xs text-secondary">
-          <CheckCircle2 className="h-4 w-4" /> Verified successfully
+          <CheckCircle2 className="h-4 w-4" /> {t("auth.verify.success")}
         </p>
       )}
 
       <div className="flex flex-col gap-2">
         <Button onClick={() => handleVerify()} disabled={code.length < 6 || status === "verifying"} className="h-11">
           {status === "verifying" && <Loader2 className="h-4 w-4 animate-spin" />}
-          Verify
+          {t("auth.verify.verify")}
         </Button>
         <div className="flex justify-between text-xs text-muted-foreground">
           {onChangeTarget && (
             <button type="button" onClick={onChangeTarget} className="hover:underline">
-              Change {type === "email" ? "email" : "phone"}
+              {t(type === "email" ? "auth.verify.changeEmail" : "auth.verify.changePhone")}
             </button>
           )}
           {onCancel && (
             <button type="button" onClick={onCancel} className="ml-auto hover:underline">
-              Cancel
+              {t("actions.cancel")}
             </button>
           )}
         </div>

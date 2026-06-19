@@ -238,7 +238,7 @@ function EmptyFeatured() {
   const { t } = useTranslation();
   return (
     <div className="rounded-3xl border border-dashed border-border bg-surface p-10 text-center">
-      <h3 className="font-semibold text-foreground">No featured properties</h3>
+      <h3 className="font-semibold text-foreground">{t("residential.noFeatured")}</h3>
       <Button asChild className="mt-4">
         <Link to="/residential">{t("home.categories.residentialCta")}</Link>
       </Button>
