@@ -235,6 +235,20 @@ export async function getOrCreateSocialUserDoc(
   });
 }
 
+export async function updateUserPhotoUrl(uid: string, photoUrl: string | null): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db) return;
+  try {
+    await updateDoc(doc(db, USERS, uid), {
+      photoUrl: photoUrl ?? null,
+      "audit.updatedAt": serverTimestamp(),
+      "audit.updatedBy": "self",
+    });
+  } catch (err) {
+    console.warn("[updateUserPhotoUrl] Firestore update failed:", err);
+  }
+}
+
 export async function updateLastLogin(uid: string): Promise<void> {
   const db = getFirebaseDb();
   if (!db) return;

@@ -3,6 +3,7 @@ import { signOut as firebaseSignOut } from "firebase/auth";
 import { useEffect, useId, useState } from "react";
 import {
   Bell,
+  Building2,
   CheckCircle2,
   ChevronRight,
   Heart,
@@ -32,7 +33,10 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { VerificationComponent } from "@/components/auth/VerificationComponent";
 import { SocialButtons } from "@/components/auth/SocialButtons";
+import { updateProfile } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { updateUserPhotoUrl } from "@/lib/firestore-user";
+import { uploadProfilePhoto } from "@/lib/file-upload";
 import { mockAuth } from "@/lib/mock-auth";
 import { countFavorites, FAVORITES_CHANGED_EVENT } from "@/lib/favorites";
 import { countMessages } from "@/lib/property-messages";
@@ -66,8 +70,24 @@ function ProfilePage() {
 
       <ProfileStats userId={user.id} />
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Row to="/saved" icon={Heart} label={t("profile.savedListings")} />
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <ActionCard
+          to="/saved"
+          icon={Heart}
+          label={t("profile.favourites")}
+          sub={t("profile.favouritesSub")}
+          accent="text-rose-500 bg-rose-500/10"
+        />
+        <ActionCard
+          to="/my-listings"
+          icon={Building2}
+          label={t("profile.myAddedList")}
+          sub={t("profile.myAddedListSub")}
+          accent="text-primary bg-primary/10"
+        />
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Row to="/messages" icon={MessageCircle} label={t("nav.messages")} />
         <Row to="/notifications" icon={Bell} label={t("profile.notifications")} />
       </div>
@@ -203,41 +223,87 @@ function EditProfileDialog() {
   const [phone, setPhone] = useState(user.phone ?? "");
   const [city, setCity] = useState(user.city);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   function reset() {
     setName(user.name);
     setPhone(user.phone ?? "");
     setCity(user.city);
     setAvatarUrl(user.avatarUrl ?? "");
+    setUploading(false);
   }
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error(t("profile.chooseImage"));
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setAvatarUrl(String(reader.result));
-    reader.readAsDataURL(file);
+
+    // Show local preview immediately while uploading
+    const localPreview = URL.createObjectURL(file);
+    setAvatarUrl(localPreview);
+    setUploading(true);
+
+    try {
+      const uploadedUrl = await uploadProfilePhoto(file);
+      setAvatarUrl(uploadedUrl);
+    } catch (err) {
+      console.error("[profile] photo upload failed:", err);
+      toast.error(t("profile.photoUploadFailed"));
+      setAvatarUrl(user.avatarUrl ?? "");
+    } finally {
+      URL.revokeObjectURL(localPreview);
+      setUploading(false);
+    }
   }
 
-  function save(e: React.FormEvent) {
+  async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
       toast.error(t("profile.nameRequired"));
       return;
     }
-    updateUser({
-      name: name.trim(),
-      phone: phone.trim() || null,
-      city: city.trim() || "Dhaka",
-      avatarInitials: initialsFrom(name),
-      avatarUrl: avatarUrl || null,
-    });
-    toast.success(t("profile.updated"));
-    setOpen(false);
+    if (uploading) {
+      toast.error(t("profile.waitForUpload"));
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const auth = getFirebaseAuth();
+      const firebaseUser = auth?.currentUser;
+
+      // Update Firebase Auth profile (displayName + photoURL)
+      if (firebaseUser) {
+        await updateProfile(firebaseUser, {
+          displayName: name.trim(),
+          photoURL: avatarUrl || null,
+        });
+      }
+
+      // Persist photoUrl to Firestore (non-blocking on error)
+      updateUserPhotoUrl(user.id, avatarUrl || null).catch(() => {});
+
+      // Update local store
+      updateUser({
+        name: name.trim(),
+        phone: phone.trim() || null,
+        city: city.trim() || "Dhaka",
+        avatarInitials: initialsFrom(name),
+        avatarUrl: avatarUrl || null,
+      });
+
+      toast.success(t("profile.updated"));
+      setOpen(false);
+    } catch (err) {
+      console.error("[profile] save failed:", err);
+      toast.error(t("profile.saveFailed"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -258,6 +324,7 @@ function EditProfileDialog() {
           <DialogTitle>{t("profile.editProfile")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={save} className="space-y-4">
+          {/* Photo picker */}
           <div className="flex flex-col items-center gap-2">
             <input
               id={photoInputId}
@@ -265,14 +332,28 @@ function EditProfileDialog() {
               accept="image/*"
               className="hidden"
               onChange={handleAvatarChange}
+              disabled={uploading}
             />
-            <label htmlFor={photoInputId} className="cursor-pointer rounded-full">
-              <Avatar className="h-24 w-24 text-2xl ring-2 ring-border transition hover:ring-primary">
-                {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
-                <AvatarFallback>{initialsFrom(name)}</AvatarFallback>
-              </Avatar>
+            <label
+              htmlFor={photoInputId}
+              className={uploading ? "cursor-wait rounded-full" : "cursor-pointer rounded-full"}
+            >
+              <div className="relative">
+                <Avatar className="h-24 w-24 text-2xl ring-2 ring-border transition hover:ring-primary">
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
+                  <AvatarFallback>{initialsFrom(name)}</AvatarFallback>
+                </Avatar>
+                {uploading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+                    <Loader2 className="h-6 w-6 animate-spin text-white" />
+                  </div>
+                )}
+              </div>
             </label>
-            {avatarUrl && (
+            <p className="text-xs text-muted-foreground">
+              {uploading ? t("profile.uploading") : t("profile.clickToChange")}
+            </p>
+            {avatarUrl && !uploading && (
               <Button
                 type="button"
                 variant="ghost"
@@ -284,6 +365,7 @@ function EditProfileDialog() {
               </Button>
             )}
           </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="profile-name">{t("profile.fullName")}</Label>
             <Input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} />
@@ -302,7 +384,8 @@ function EditProfileDialog() {
               <Input id="profile-city" value={city} onChange={(e) => setCity(e.target.value)} />
             </div>
           </div>
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full" disabled={uploading || saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t("actions.submit")}
           </Button>
         </form>
@@ -714,6 +797,36 @@ function Stat({ label, value }: { label: string; value: number | string }) {
       <p className="text-2xl font-bold text-primary">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
+  );
+}
+
+function ActionCard({
+  to,
+  icon: Icon,
+  label,
+  sub,
+  accent,
+}: {
+  to: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  sub: string;
+  accent: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="card-hover flex items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-card"
+    >
+      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${accent}`}>
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">{label}</p>
+        <p className="truncate text-xs text-muted-foreground">{sub}</p>
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </Link>
   );
 }
 

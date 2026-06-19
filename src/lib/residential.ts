@@ -215,6 +215,31 @@ export async function countOwnedResidentialListings(ownerId: string): Promise<nu
   }, 0);
 }
 
+export async function listOwnedResidentialListings(
+  ownerId: string,
+  page = 1,
+  pageSize = 20,
+): Promise<SearchResult> {
+  const results = await Promise.allSettled(
+    RESIDENTIAL_TYPES.map((type) =>
+      api<RawListResponse>(`/api/v1/properties/residential/${TYPE_TO_PATH[type]}`, {
+        query: { ownerId, page, pageSize },
+      }).then((res) => ({ type, res })),
+    ),
+  );
+
+  let items: PropertyListItem[] = [];
+  let total = 0;
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      items = items.concat(r.value.res.items.map((raw) => normalize(r.value.type, raw)));
+      total += r.value.res.meta?.totalItems ?? r.value.res.items.length;
+    }
+  }
+  items.sort((a, b) => (Date.parse(b.createdAt ?? "") || 0) - (Date.parse(a.createdAt ?? "") || 0));
+  return { items, total };
+}
+
 export interface PropertyDetail {
   id: string;
   advertisementId: string;

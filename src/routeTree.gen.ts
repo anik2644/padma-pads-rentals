@@ -15,6 +15,7 @@ import { Route as ResidentialRouteImport } from './routes/residential'
 import { Route as RecreationalRouteImport } from './routes/recreational'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as CommercialRouteImport } from './routes/commercial'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -57,6 +58,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyListingsRoute = MyListingsRouteImport.update({
+  id: '/my-listings',
+  path: '/my-listings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesRoute = MessagesRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
+  '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/recreational': typeof RecreationalRouteWithChildren
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/add-property': typeof AddPropertyRoute
   '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
+  '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/recreational': typeof RecreationalRouteWithChildren
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/commercial': typeof CommercialRouteWithChildren
   '/messages': typeof MessagesRoute
+  '/my-listings': typeof MyListingsRoute
   '/notifications': typeof NotificationsRoute
   '/profile': typeof ProfileRoute
   '/recreational': typeof RecreationalRouteWithChildren
@@ -196,6 +205,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/commercial'
     | '/messages'
+    | '/my-listings'
     | '/notifications'
     | '/profile'
     | '/recreational'
@@ -216,6 +226,7 @@ export interface FileRouteTypes {
     | '/add-property'
     | '/commercial'
     | '/messages'
+    | '/my-listings'
     | '/notifications'
     | '/profile'
     | '/recreational'
@@ -237,6 +248,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/commercial'
     | '/messages'
+    | '/my-listings'
     | '/notifications'
     | '/profile'
     | '/recreational'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   CommercialRoute: typeof CommercialRouteWithChildren
   MessagesRoute: typeof MessagesRoute
+  MyListingsRoute: typeof MyListingsRoute
   NotificationsRoute: typeof NotificationsRoute
   ProfileRoute: typeof ProfileRoute
   RecreationalRoute: typeof RecreationalRouteWithChildren
@@ -310,6 +323,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-listings': {
+      id: '/my-listings'
+      path: '/my-listings'
+      fullPath: '/my-listings'
+      preLoaderRoute: typeof MyListingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages': {
@@ -464,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   CommercialRoute: CommercialRouteWithChildren,
   MessagesRoute: MessagesRoute,
+  MyListingsRoute: MyListingsRoute,
   NotificationsRoute: NotificationsRoute,
   ProfileRoute: ProfileRoute,
   RecreationalRoute: RecreationalRouteWithChildren,
