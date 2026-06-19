@@ -27,12 +27,20 @@ function AuthLayout() {
 
         <div className="rounded-3xl border border-border bg-card p-6 shadow-card md:p-8">
           {!isForgot && (
-            <div className="mb-6 rounded-xl bg-muted p-1 text-sm font-semibold">
+            <div className="mb-6 grid grid-cols-2 rounded-xl bg-muted p-1 text-sm font-semibold">
               <Link
                 to="/auth/login"
-                className="block rounded-lg bg-background px-3 py-2 text-center shadow-sm transition"
+                className="rounded-lg px-3 py-2 text-center text-muted-foreground transition hover:text-foreground"
+                activeProps={{ className: "bg-background shadow-sm text-foreground" }}
               >
                 Log in
+              </Link>
+              <Link
+                to="/auth/signup"
+                className="rounded-lg px-3 py-2 text-center text-muted-foreground transition hover:text-foreground"
+                activeProps={{ className: "bg-background shadow-sm text-foreground" }}
+              >
+                Sign up
               </Link>
             </div>
           )}

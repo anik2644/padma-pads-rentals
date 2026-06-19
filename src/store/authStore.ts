@@ -30,7 +30,7 @@ interface AuthState {
   user: MockUser | null;
   token: string | null;
   profileCompleted: boolean;
-  setUser: (u: MockUser | null) => void;
+  setUser: (u: MockUser | null, profileCompleted?: boolean) => void;
   setToken: (t: string | null) => void;
   updateUser: (patch: Partial<MockUser>) => void;
   addCredential: (c: ConnectedCredential) => void;
@@ -46,7 +46,8 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       profileCompleted: false,
-      setUser: (user) => set({ user, profileCompleted: !!user }),
+      setUser: (user, profileCompleted) =>
+        set({ user, profileCompleted: profileCompleted ?? !!user }),
       setToken: (token) => set({ token }),
       updateUser: (patch) =>
         set((s) => (s.user ? { user: { ...s.user, ...patch } } : {})),

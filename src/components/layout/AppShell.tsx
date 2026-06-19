@@ -6,6 +6,7 @@ import { initI18n } from "@/i18n";
 import { Navbar } from "./Navbar";
 import { BottomTabBar } from "./BottomTabBar";
 import { Toaster } from "@/components/ui/sonner";
+import { resolveStoreUser } from "@/lib/firestore-user";
 import { firebaseUserToStoreUser } from "@/lib/firebase-auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
@@ -33,19 +34,26 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
 
     return onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
+      try {
+        if (!firebaseUser) {
+          clearAuth();
+          return;
+        }
+        // Try Firestore-backed resolution; fall back to bare Firebase Auth data
+        let resolved = await resolveStoreUser(firebaseUser).catch(async () => ({
+          user: await firebaseUserToStoreUser(firebaseUser),
+          profileCompleted: false as boolean,
+        }));
+        const token = await firebaseUser.getIdToken();
+        setUser(resolved.user, resolved.profileCompleted);
+        setToken(token);
+      } catch (err) {
+        // Only clear auth if we truly cannot identify the user at all
+        console.error("[AppShell] critical auth error:", err);
         clearAuth();
+      } finally {
         setAuthReady(true);
-        return;
       }
-
-      const [user, token] = await Promise.all([
-        firebaseUserToStoreUser(firebaseUser),
-        firebaseUser.getIdToken(),
-      ]);
-      setUser(user);
-      setToken(token);
-      setAuthReady(true);
     });
   }, [clearAuth, setToken, setUser]);
 
