@@ -19,7 +19,8 @@ import { getFirebaseDb } from "./firebase";
 import type { ConnectedCredential, MockUser } from "@/store/authStore";
 import { firebaseUserToStoreUser } from "./firebase-auth";
 
-export type EmailProvider = "self" | "google" | "facebook" | "apple";
+export type EmailProvider = "self" | "google" | "facebook" | "apple" | "attached";
+export type SocialEmailProvider = "google" | "facebook" | "apple";
 
 const USERS = "users";
 
@@ -88,7 +89,10 @@ export function normalizeEmail(email: string) {
 }
 
 export function normalizePhone(phone: string) {
-  return phone.trim().replace(/[\s()-]/g, "");
+  const compact = phone.trim().replace(/[\s()-]/g, "");
+  if (/^01\d{9}$/.test(compact)) return `+88${compact}`;
+  if (/^8801\d{9}$/.test(compact)) return `+${compact}`;
+  return compact;
 }
 
 function profileValue<T>(field: ProfileField<T> | T | null | undefined): T | null {
@@ -146,11 +150,12 @@ function emailEntry(
 }
 
 function providerToCredentialProvider(provider: EmailProvider): ConnectedCredential["provider"] {
-  return provider === "self" ? "email" : provider;
+  return provider === "self" || provider === "attached" ? "email" : provider;
 }
 
 export function providerLabel(provider: EmailProvider) {
   if (provider === "self") return "email/password";
+  if (provider === "attached") return "email";
   return provider[0].toUpperCase() + provider.slice(1);
 }
 
@@ -328,7 +333,7 @@ export async function createEmailPasswordUserDoc(firebaseUser: User): Promise<vo
 
 export async function createSocialUserDoc(
   firebaseUser: User,
-  provider: Exclude<EmailProvider, "self">,
+  provider: SocialEmailProvider,
 ): Promise<void> {
   const db = getFirebaseDb();
   if (!db || !firebaseUser.email) return;
@@ -379,6 +384,55 @@ export async function appendEmailProvider(
     attachedEmails,
     credentialEmails: buildCredentialEmails({ attachedEmails }),
     "audit.lastLoginAt": serverTimestamp(),
+  });
+}
+
+export async function appendAttachedEmail(uid: string, email: string) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const ref = doc(db, USERS, uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data() as FirestoreUser;
+  const normalized = normalizeEmail(email);
+  const existing = data.attachedEmails ?? [];
+  if (existing.some((entry) => normalizeEmail(entry.email) === normalized)) return;
+  const attachedEmails = [...existing, emailEntry(normalized, "attached")];
+  await updateDoc(ref, {
+    attachedEmails,
+    credentialEmails: buildCredentialEmails({ attachedEmails }),
+  });
+}
+
+export async function appendAttachedPhone(uid: string, phoneNumber: string) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const ref = doc(db, USERS, uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data() as FirestoreUser;
+  const normalized = normalizePhone(phoneNumber);
+  const existing = data.attachedPhoneNumbers ?? [];
+  if (existing.some((entry) => normalizePhone(entry.phoneNumber) === normalized)) return;
+  const nowTs = Timestamp.now();
+  const attachedPhoneNumbers = [
+    ...existing,
+    {
+      phoneNumber: normalized,
+      loginEnabled: true,
+      verified: true,
+      status: "active" as const,
+      provider: "attached" as const,
+      audit: {
+        attachedAt: nowTs,
+        verifiedAt: nowTs,
+        lastUsedAt: nowTs,
+      },
+    },
+  ];
+  await updateDoc(ref, {
+    attachedPhoneNumbers,
+    credentialPhones: buildCredentialPhones({ attachedPhoneNumbers }),
   });
 }
 

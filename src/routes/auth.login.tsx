@@ -32,10 +32,10 @@ import {
   primarySelfEmailForPhoneLogin,
   providerLabel,
   resolveStoreUser,
-  type EmailProvider,
+  type SocialEmailProvider,
 } from "@/lib/firestore-user";
 
-type SocialProvider = Exclude<EmailProvider, "self">;
+type SocialProvider = SocialEmailProvider;
 
 export const Route = createFileRoute("/auth/login")({
   component: LoginPage,

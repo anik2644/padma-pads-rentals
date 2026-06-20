@@ -1,11 +1,18 @@
 import type { AuthProvider, MockUser } from "@/store/authStore";
 
-/** Universal OTP code for the mock auth flow. */
-export const MOCK_OTP = "123456";
-
 const delay = (ms = 700) => new Promise((r) => setTimeout(r, ms));
+let currentDemoOtp: string | null = null;
 
-function makeUser(opts: { email?: string; phone?: string; name?: string; provider: AuthProvider }): MockUser {
+function generateDemoOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function makeUser(opts: {
+  email?: string;
+  phone?: string;
+  name?: string;
+  provider: AuthProvider;
+}): MockUser {
   const fullName =
     opts.name ??
     (opts.email
@@ -73,11 +80,12 @@ export const mockAuth = {
   },
   async sendOtp() {
     await delay(500);
-    return { sent: true, code: MOCK_OTP };
+    currentDemoOtp = generateDemoOtp();
+    return { sent: true, code: currentDemoOtp };
   },
   async verifyOtp(code: string) {
     await delay(500);
-    return code.trim() === MOCK_OTP;
+    return currentDemoOtp !== null && code.trim() === currentDemoOtp;
   },
   async resetPassword(_password: string) {
     await delay();

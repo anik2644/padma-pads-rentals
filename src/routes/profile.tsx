@@ -1,8 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { signOut as firebaseSignOut } from "firebase/auth";
+import {
+  fetchSignInMethodsForEmail,
+  reload,
+  signOut as firebaseSignOut,
+  updateProfile,
+  verifyBeforeUpdateEmail,
+  type User,
+} from "firebase/auth";
 import { useEffect, useId, useState } from "react";
 import {
   Bell,
+  AlertCircle,
   Building2,
   CheckCircle2,
   ChevronRight,
@@ -17,31 +25,52 @@ import {
   Pencil,
   Phone,
   Plus,
+  RefreshCw,
   Shield,
-  Star,
-  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { VerificationComponent } from "@/components/auth/VerificationComponent";
-import { SocialButtons } from "@/components/auth/SocialButtons";
-import { updateProfile } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { updateUserPhotoUrl } from "@/lib/firestore-user";
+import {
+  appendAttachedEmail,
+  appendAttachedPhone,
+  findUserDocByEmail,
+  findUserDocByPhone,
+  normalizeEmail,
+  normalizePhone,
+  resolveStoreUser,
+  updateUserPhotoUrl,
+} from "@/lib/firestore-user";
 import { uploadProfilePhoto } from "@/lib/file-upload";
 import { mockAuth } from "@/lib/mock-auth";
 import { countFavorites, FAVORITES_CHANGED_EVENT } from "@/lib/favorites";
 import { countMessages } from "@/lib/property-messages";
 import { countOwnedResidentialListings } from "@/lib/residential";
-import { useAuthStore, type AuthProvider, type ConnectedCredential } from "@/store/authStore";
+import { useAuthStore, type ConnectedCredential } from "@/store/authStore";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({ meta: [{ title: "Profile — HomeBee" }] }),
@@ -100,11 +129,8 @@ function ProfilePage() {
       </div>
 
       <section className="mt-10">
-        <SectionHeader
-          title={t("profile.connected")}
-          sub={t("profile.connectedSub")}
-        />
-        <ConnectedAccounts />
+        <SectionHeader title={t("profile.connected")} sub={t("profile.connectedSub")} />
+        <AttachmentSettings />
       </section>
 
       <Separator className="my-6" />
@@ -187,7 +213,9 @@ function ProfileHeader() {
               </Badge>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">{t("profile.memberSince", { year: user.joinedYear })}</p>
+          <p className="text-sm text-muted-foreground">
+            {t("profile.memberSince", { year: user.joinedYear })}
+          </p>
           <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
             {user.email && (
               <span className="flex items-center gap-1">
@@ -425,7 +453,7 @@ function ChangePassword() {
     }
   }
 
-  const target = method === "email" ? user.email ?? "" : user.phone ?? "";
+  const target = method === "email" ? (user.email ?? "") : (user.phone ?? "");
 
   return (
     <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
@@ -528,234 +556,521 @@ function ChangePassword() {
   );
 }
 
-const PROVIDER_META: Record<AuthProvider, { label: string; icon: React.ReactNode }> = {
-  email: { label: "Email", icon: <Mail className="h-4 w-4" /> },
-  phone: { label: "Phone", icon: <Phone className="h-4 w-4" /> },
-  google: { label: "Google", icon: <span className="text-xs font-bold">G</span> },
-  facebook: { label: "Facebook", icon: <span className="text-xs font-bold">f</span> },
-  apple: { label: "Apple", icon: <span className="text-xs">A</span> },
-};
-
-function ConnectedAccounts() {
-  const { t } = useTranslation();
+function AttachmentSettings() {
   const user = useAuthStore((s) => s.user)!;
   const addCredential = useAuthStore((s) => s.addCredential);
-  const removeCredential = useAuthStore((s) => s.removeCredential);
-  const updateCredential = useAuthStore((s) => s.updateCredential);
-  const setPrimary = useAuthStore((s) => s.setPrimary);
+  const setUser = useAuthStore((s) => s.setUser);
+  const setToken = useAuthStore((s) => s.setToken);
+  const emails = user.credentials.filter((c) => c.provider === "email");
+  const phones = user.credentials.filter((c) => c.provider === "phone");
+  const emailBlockMessage =
+    emails.length === 1
+      ? "No email can be attached here because this account has a single self/attached email credential."
+      : null;
+  const phoneBlockMessage =
+    phones.length > 0
+      ? "No phone number can be attached here because this account already has an attached phone number."
+      : null;
 
-  const activeCount = user.credentials.filter((c) => c.loginEnabled).length;
-
-  function handleRemove(c: ConnectedCredential) {
-    if (c.loginEnabled && activeCount <= 1) {
-      toast.error(t("profile.activeLoginRequired"));
-      return;
+  async function handleAttach(c: ConnectedCredential) {
+    addCredential(c);
+    const auth = getFirebaseAuth();
+    if (auth?.currentUser) {
+      const [resolved, token] = await Promise.all([
+        resolveStoreUser(auth.currentUser),
+        auth.currentUser.getIdToken(),
+      ]);
+      setUser(resolved.user, resolved.profileCompleted);
+      setToken(token);
     }
-    removeCredential(c.provider, c.value);
-    toast.success(t("profile.disconnected", { provider: PROVIDER_META[c.provider].label }));
-  }
-
-  function handleToggleLogin(c: ConnectedCredential, next: boolean) {
-    if (!next && c.loginEnabled && activeCount <= 1) {
-      toast.error(t("profile.activeLoginRequired"));
-      return;
-    }
-    updateCredential(c.provider, c.value, { loginEnabled: next });
+    toast.success(
+      c.provider === "email"
+        ? "Email attached successfully."
+        : "Phone number attached successfully.",
+    );
   }
 
   return (
-    <div className="space-y-3">
-      {user.credentials.map((c) => (
-        <div
-          key={`${c.provider}-${c.value}`}
-          className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-4"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {PROVIDER_META[c.provider].icon}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{PROVIDER_META[c.provider].label}</p>
-              {c.primary && (
-                <Badge className="gap-1 border-0 bg-primary/10 text-primary">
-                  <Star className="h-3 w-3" /> {t("profile.primary")}
-                </Badge>
-              )}
-              {c.verified ? (
-                <Badge className="gap-1 border-0 bg-secondary/15 text-secondary">
-                  <CheckCircle2 className="h-3 w-3" /> {t("profile.verified")}
-                </Badge>
-              ) : (
-                <Badge variant="outline">{t("profile.unverified")}</Badge>
-              )}
-            </div>
-            <p className="truncate text-xs text-muted-foreground">{c.value}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs">
-              <span>{t("profile.login")}</span>
-              <Switch checked={c.loginEnabled} onCheckedChange={(v) => handleToggleLogin(c, v)} />
-            </div>
-            {!c.primary && (
-              <Button variant="ghost" size="sm" onClick={() => setPrimary(c.provider, c.value)}>
-                {t("profile.setPrimary")}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleRemove(c)}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      ))}
-
-      <AttachCredential
-        onAttach={(c) => {
-          addCredential(c);
-          toast.success(t("profile.connectedToast", { provider: PROVIDER_META[c.provider].label }));
-        }}
+    <div className="grid gap-4 lg:grid-cols-2">
+      <AttachmentGroup
+        icon={<Mail className="h-4 w-4" />}
+        title="Attached emails"
+        empty="No attached emails yet."
+        items={emails}
+        addButton={
+          <AttachCredential
+            type="email"
+            blockedMessage={emailBlockMessage}
+            onAttach={handleAttach}
+          />
+        }
+      />
+      <AttachmentGroup
+        icon={<Phone className="h-4 w-4" />}
+        title="Attached phone numbers"
+        empty="No attached phone numbers yet."
+        items={phones}
+        addButton={
+          <AttachCredential
+            type="phone"
+            blockedMessage={phoneBlockMessage}
+            onAttach={handleAttach}
+          />
+        }
       />
     </div>
   );
 }
 
-function AttachCredential({ onAttach }: { onAttach: (c: ConnectedCredential) => void }) {
+function AttachmentGroup({
+  icon,
+  title,
+  empty,
+  items,
+  addButton,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  empty: string;
+  items: ConnectedCredential[];
+  addButton: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            {icon}
+          </span>
+          <h3 className="font-semibold">{title}</h3>
+        </div>
+        {addButton}
+      </div>
+      <div className="space-y-2">
+        {items.length === 0 && <p className="text-sm text-muted-foreground">{empty}</p>}
+        {items.map((item) => (
+          <div
+            key={`${item.provider}-${item.value}`}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2"
+          >
+            <p className="min-w-0 truncate text-sm font-medium">{item.value}</p>
+            {item.verified ? (
+              <Badge className="gap-1 border-0 bg-secondary/15 text-secondary">
+                <CheckCircle2 className="h-3 w-3" /> Verified
+              </Badge>
+            ) : (
+              <Badge variant="outline">Unverified</Badge>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AttachCredential({
+  type,
+  blockedMessage,
+  onAttach,
+}: {
+  type: "email" | "phone";
+  blockedMessage?: string | null;
+  onAttach: (c: ConnectedCredential) => void | Promise<void>;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"choose" | "email" | "phone" | "verify-email" | "verify-phone">(
-    "choose",
-  );
+  const [blockedOpen, setBlockedOpen] = useState(false);
+  const [mode, setMode] = useState<"input" | "verify-email" | "verify-phone">("input");
   const [value, setValue] = useState("");
+  const [verificationUser, setVerificationUser] = useState<User | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function reset() {
-    setMode("choose");
+    setMode("input");
     setValue("");
+    setVerificationUser(null);
+    setBusy(false);
+    setError(null);
   }
 
-  async function handleGoogle() {
-    const u = await mockAuth.social("google");
-    onAttach({
-      provider: "google",
-      value: u.email ?? "google-user",
+  async function startEmailAttachment(e: React.FormEvent) {
+    e.preventDefault();
+    const email = normalizeEmail(value);
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const auth = getFirebaseAuth();
+      const currentUser = auth?.currentUser;
+      if (!auth || !currentUser) throw new Error("You must be logged in.");
+      if (await findUserDocByEmail(email))
+        throw new Error("This email is already attached to another account.");
+      const methods = await fetchSignInMethodsForEmail(auth, email);
+      if (methods.length > 0) throw new Error("This email is already registered in Firebase.");
+      await verifyBeforeUpdateEmail(currentUser, email);
+      setVerificationUser(currentUser);
+      setMode("verify-email");
+    } catch (err) {
+      setError((err as Error).message || "Could not start email attachment.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function completeEmailAttachment(user: User) {
+    const email = normalizeEmail(value);
+    await appendAttachedEmail(user.uid, email);
+    await onAttach({
+      provider: "email",
+      value: email,
       verified: true,
       loginEnabled: true,
       primary: false,
       addedAt: new Date().toISOString(),
     });
+    toast.success("Email attached successfully.");
     setOpen(false);
     reset();
   }
 
-  function commitVerified(provider: "email" | "phone") {
-    onAttach({
-      provider,
-      value,
-      verified: true,
-      loginEnabled: true,
-      primary: false,
-      addedAt: new Date().toISOString(),
-    });
-    setOpen(false);
-    reset();
+  async function resendAttachmentEmail() {
+    const auth = getFirebaseAuth();
+    const currentUser = auth?.currentUser;
+    if (!currentUser) return;
+    await verifyBeforeUpdateEmail(currentUser, normalizeEmail(value));
+  }
+
+  async function startPhoneAttachment(e: React.FormEvent) {
+    e.preventDefault();
+    const phone = normalizePhone(value);
+    if (!/^\+8801\d{9}$/.test(phone)) {
+      setError("Enter a valid Bangladeshi phone number, like 01712345678 or +8801712345678.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const auth = getFirebaseAuth();
+      if (!auth?.currentUser) throw new Error("You must be logged in.");
+      if (await findUserDocByPhone(phone))
+        throw new Error("This phone number is already attached.");
+      const { code } = await mockAuth.sendOtp();
+      toast.info(`Demo OTP sent - use code ${code}`);
+      setMode("verify-phone");
+    } catch (err) {
+      setError((err as Error).message || "Could not send OTP.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function completePhoneAttachment(code: string) {
+    const auth = getFirebaseAuth();
+    const currentUser = auth?.currentUser;
+    if (!currentUser) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const verified = await mockAuth.verifyOtp(code);
+      if (!verified) {
+        setError("Invalid OTP. Use the latest demo OTP and try again.");
+        return;
+      }
+      const phone = normalizePhone(value);
+      await appendAttachedPhone(currentUser.uid, phone);
+      await onAttach({
+        provider: "phone",
+        value: phone,
+        verified: true,
+        loginEnabled: true,
+        primary: false,
+        addedAt: new Date().toISOString(),
+      });
+      toast.success("Phone number attached successfully.");
+      setOpen(false);
+      reset();
+    } catch (err) {
+      setError((err as Error).message || "Invalid OTP. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen) reset();
-      }}
-    >
-      <DialogTrigger asChild>
-        <button
+    <>
+      <AlertDialog open={blockedOpen} onOpenChange={setBlockedOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {type === "email" ? "Email attachment unavailable" : "Phone attachment unavailable"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{blockedMessage}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if ((mode === "verify-email" || mode === "verify-phone") && !nextOpen) return;
+          setOpen(nextOpen);
+          if (!nextOpen) reset();
+        }}
+      >
+        <Button
           type="button"
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-sm font-medium text-muted-foreground hover:bg-muted"
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            if (blockedMessage) {
+              setBlockedOpen(true);
+              return;
+            }
+            setOpen(true);
+          }}
         >
-          <Plus className="h-4 w-4" /> {t("profile.attachMethod")}
-        </button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("profile.attachTitle")}</DialogTitle>
-        </DialogHeader>
+          <Plus className="h-4 w-4" />
+          {type === "email" ? "Add email" : "Add phone"}
+        </Button>
+        <DialogContent
+          className={
+            mode === "verify-email" || mode === "verify-phone" ? "[&>button]:hidden" : undefined
+          }
+          onEscapeKeyDown={(e) => {
+            if (mode === "verify-email" || mode === "verify-phone") e.preventDefault();
+          }}
+          onPointerDownOutside={(e) => {
+            if (mode === "verify-email" || mode === "verify-phone") e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            if (mode === "verify-email" || mode === "verify-phone") e.preventDefault();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>{type === "email" ? "Attach email" : "Attach phone number"}</DialogTitle>
+          </DialogHeader>
 
-        {mode === "choose" && (
-          <div className="space-y-3">
-            <div className="grid gap-2">
-              <Button
-                variant="outline"
-                className="h-11 justify-start gap-2"
-                onClick={() => setMode("email")}
-              >
-                <Mail className="h-4 w-4" /> {t("profile.attachEmail")}
+          {mode === "input" && (
+            <form
+              onSubmit={type === "email" ? startEmailAttachment : startPhoneAttachment}
+              className="space-y-3"
+            >
+              <div className="space-y-1.5">
+                <Label>{type === "email" ? "Email address" : "Phone number"}</Label>
+                <Input
+                  type={type === "email" ? "email" : "tel"}
+                  placeholder={type === "email" ? "you@example.com" : "+8801712345678"}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  className="h-11"
+                />
+              </div>
+              <Button type="submit" className="h-11 w-full">
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Shield className="h-4 w-4" /> {t("profile.sendVerification")}
               </Button>
-              <Button
-                variant="outline"
-                className="h-11 justify-start gap-2"
-                onClick={() => setMode("phone")}
-              >
-                <Phone className="h-4 w-4" /> {t("profile.attachPhone")}
-              </Button>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <div className="h-px flex-1 bg-border" />
-              <span>{t("profile.orSocial")}</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <SocialButtons onProvider={handleGoogle} mode="attach" />
-          </div>
-        )}
+              {error && (
+                <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              )}
+            </form>
+          )}
 
-        {(mode === "email" || mode === "phone") && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!value.trim()) return;
-              setMode(mode === "email" ? "verify-email" : "verify-phone");
-            }}
-            className="space-y-3"
-          >
-            <div className="space-y-1.5">
-              <Label>{t(mode === "email" ? "profile.emailAddress" : "profile.phoneNumber")}</Label>
-              <Input
-                type={mode === "email" ? "email" : "tel"}
-                placeholder={mode === "email" ? "you@example.com" : "+8801712345678"}
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                className="h-11"
-              />
-            </div>
-            <Button type="submit" className="h-11 w-full">
-              <Shield className="h-4 w-4" /> {t("profile.sendVerification")}
-            </Button>
-          </form>
-        )}
+          {mode === "verify-email" && (
+            <EmailAttachmentVerification
+              user={verificationUser}
+              email={normalizeEmail(value)}
+              onVerified={completeEmailAttachment}
+              onResend={resendAttachmentEmail}
+            />
+          )}
+          {mode === "verify-phone" && (
+            <PhoneAttachmentVerification
+              phone={normalizePhone(value)}
+              busy={busy}
+              error={error}
+              onVerified={completePhoneAttachment}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
-        {mode === "verify-email" && (
-          <VerificationComponent
-            type="email"
-            target={value}
-            onVerified={() => commitVerified("email")}
-            onChangeTarget={() => setMode("email")}
-            onCancel={() => setMode("choose")}
-          />
-        )}
-        {mode === "verify-phone" && (
-          <VerificationComponent
-            type="phone"
-            target={value}
-            onVerified={() => commitVerified("phone")}
-            onChangeTarget={() => setMode("phone")}
-            onCancel={() => setMode("choose")}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+function EmailAttachmentVerification({
+  user,
+  email,
+  onVerified,
+  onResend,
+}: {
+  user: User | null;
+  email: string;
+  onVerified: (user: User) => Promise<void>;
+  onResend: () => Promise<void>;
+}) {
+  const [remaining, setRemaining] = useState(90);
+  const [expired, setExpired] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [resends, setResends] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let done = false;
+    const startedAt = Date.now();
+
+    async function check() {
+      if (done) return;
+      try {
+        await reload(user);
+        if (normalizeEmail(user.email ?? "") === email) {
+          done = true;
+          await onVerified(user);
+          return;
+        }
+        const elapsed = Date.now() - startedAt;
+        setRemaining(Math.max(0, Math.ceil((90_000 - elapsed) / 1000)));
+        if (elapsed >= 90_000) {
+          done = true;
+          setExpired(true);
+        }
+      } catch (err) {
+        setError((err as Error).message || "Could not check verification.");
+      }
+    }
+
+    void check();
+    const interval = window.setInterval(check, 3_000);
+    return () => {
+      done = true;
+      window.clearInterval(interval);
+    };
+  }, [attempt, email, onVerified, user]);
+
+  async function checkAgain() {
+    if (!user) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await reload(user);
+      if (normalizeEmail(user.email ?? "") === email) await onVerified(user);
+      else setExpired(true);
+    } catch (err) {
+      setError((err as Error).message || "Could not check verification.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resend() {
+    setBusy(true);
+    setError(null);
+    try {
+      await onResend();
+      setResends((n) => n + 1);
+      setExpired(false);
+      setRemaining(90);
+      setAttempt((n) => n + 1);
+    } catch (err) {
+      setError((err as Error).message || "Could not resend verification email.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4 text-center">
+      <div>
+        <h3 className="text-lg font-semibold">Verify your new email</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          We sent a verification email to{" "}
+          <span className="font-medium text-foreground">{email}</span>.
+        </p>
+      </div>
+      <div className="rounded-md bg-muted px-3 py-2 text-sm">
+        {expired ? "Email not verified yet." : `Auto-checking for ${remaining}s`}
+      </div>
+      {error && (
+        <p className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" /> {error}
+        </p>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button type="button" variant="outline" onClick={checkAgain} disabled={busy}>
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          Check Again
+        </Button>
+        <Button type="button" variant="outline" onClick={resend} disabled={busy}>
+          <RefreshCw className="h-4 w-4" /> Resend Email ({resends})
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function PhoneAttachmentVerification({
+  phone,
+  busy,
+  error,
+  onVerified,
+}: {
+  phone: string;
+  busy: boolean;
+  error: string | null;
+  onVerified: (code: string) => Promise<void>;
+}) {
+  const [code, setCode] = useState("");
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center">
+        <h3 className="text-lg font-semibold">Verify your phone number</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Enter the OTP sent to <span className="font-medium text-foreground">{phone}</span>.
+        </p>
+      </div>
+      <div className="flex justify-center">
+        <InputOTP
+          maxLength={6}
+          value={code}
+          onChange={(v) => {
+            setCode(v);
+            if (v.length === 6) void onVerified(v);
+          }}
+        >
+          <InputOTPGroup>
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <InputOTPSlot key={i} index={i} className="h-12 w-11 text-lg" />
+            ))}
+          </InputOTPGroup>
+        </InputOTP>
+      </div>
+      {error && (
+        <p className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" /> {error}
+        </p>
+      )}
+      <Button
+        type="button"
+        onClick={() => void onVerified(code)}
+        disabled={busy || code.length < 6}
+        className="h-11 w-full"
+      >
+        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+        Verify Phone
+      </Button>
+    </div>
   );
 }
 
@@ -776,9 +1091,7 @@ function SignedOut() {
         <LogIn className="h-7 w-7" />
       </div>
       <h1 className="mt-4 text-2xl font-bold">{t("profile.signedOutTitle")}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        {t("profile.signedOutSub")}
-      </p>
+      <p className="mt-2 text-sm text-muted-foreground">{t("profile.signedOutSub")}</p>
       <div className="mt-6 flex justify-center gap-2">
         <Link
           to="/auth/login"

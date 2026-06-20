@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { MOCK_OTP, mockAuth } from "@/lib/mock-auth";
+import { mockAuth } from "@/lib/mock-auth";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -35,8 +35,14 @@ export function VerificationComponent({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    void mockAuth.sendOtp();
-    toast.info(t("auth.verify.mockSent", { method: t(type === "email" ? "auth.verify.emailLink" : "auth.verify.otp"), code: MOCK_OTP }));
+    void mockAuth.sendOtp().then(({ code }) => {
+      toast.info(
+        t("auth.verify.demoSent", {
+          method: t(type === "email" ? "auth.verify.emailLink" : "auth.verify.otp"),
+          code,
+        }),
+      );
+    });
     startCountdown();
     return () => stopCountdown();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,15 +81,15 @@ export function VerificationComponent({
       setTimeout(onVerified, 400);
     } else {
       setStatus("error");
-      setError(t("auth.verify.invalid", { code: MOCK_OTP }));
+      setError(t("auth.verify.invalid"));
     }
   }
 
   async function handleResend() {
     if (countdown > 0) return;
     setResends((r) => r + 1);
-    await mockAuth.sendOtp();
-    toast.info(t("auth.verify.resent", { code: MOCK_OTP }));
+    const { code } = await mockAuth.sendOtp();
+    toast.info(t("auth.verify.resent", { code }));
     startCountdown();
   }
 
@@ -97,8 +103,7 @@ export function VerificationComponent({
           {title ?? t(type === "email" ? "auth.verify.verifyEmail" : "auth.verify.verifyPhone")}
         </h3>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t("auth.verify.sentTo")}{" "}
-          <span className="font-medium text-foreground">{target}</span>
+          {t("auth.verify.sentTo")} <span className="font-medium text-foreground">{target}</span>
         </p>
       </div>
 
@@ -130,7 +135,9 @@ export function VerificationComponent({
           className="inline-flex items-center gap-1 font-medium text-primary disabled:cursor-not-allowed disabled:text-muted-foreground"
         >
           <RefreshCw className="h-3 w-3" />
-          {countdown > 0 ? t("auth.verify.resendIn", { time: `${mm}:${ss}` }) : t("auth.verify.resendCode")}
+          {countdown > 0
+            ? t("auth.verify.resendIn", { time: `${mm}:${ss}` })
+            : t("auth.verify.resendCode")}
         </button>
       </div>
 
@@ -146,7 +153,11 @@ export function VerificationComponent({
       )}
 
       <div className="flex flex-col gap-2">
-        <Button onClick={() => handleVerify()} disabled={code.length < 6 || status === "verifying"} className="h-11">
+        <Button
+          onClick={() => handleVerify()}
+          disabled={code.length < 6 || status === "verifying"}
+          className="h-11"
+        >
           {status === "verifying" && <Loader2 className="h-4 w-4 animate-spin" />}
           {t("auth.verify.verify")}
         </Button>

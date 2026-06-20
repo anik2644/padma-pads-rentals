@@ -322,11 +322,11 @@
       "attachGoogle": "Attach with Google"
     },
     "verify": {
-      "mockSent": "Mock {{method}} sent - use code {{code}}",
+      "demoSent": "Demo {{method}} sent - use code {{code}}",
       "emailLink": "email link",
       "otp": "OTP",
       "verified": "Verified",
-      "invalid": "Invalid code. Try {{code}}.",
+      "invalid": "Invalid code. Use the latest demo OTP and try again.",
       "resent": "Resent - use code {{code}}",
       "verifyEmail": "Verify your email",
       "verifyPhone": "Verify your phone",

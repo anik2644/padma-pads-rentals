@@ -39,10 +39,10 @@ import {
   normalizeEmail,
   providerLabel,
   resolveStoreUser,
-  type EmailProvider,
+  type SocialEmailProvider,
 } from "@/lib/firestore-user";
 
-type SocialProvider = Exclude<EmailProvider, "self">;
+type SocialProvider = SocialEmailProvider;
 const PENDING_LINK_EMAIL_KEY = "homebee:pending-email-password-link-email";
 
 export const Route = createFileRoute("/auth/signup")({
