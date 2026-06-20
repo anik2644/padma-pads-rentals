@@ -1,58 +1,74 @@
 import {
+  collection,
+  deleteField,
   doc,
   getDoc,
-  setDoc,
-  updateDoc,
+  getDocs,
+  limit,
+  query,
   serverTimestamp,
+  setDoc,
   Timestamp,
+  updateDoc,
+  where,
+  type DocumentReference,
+  type DocumentSnapshot,
 } from "firebase/firestore";
 import { updateProfile, type User } from "firebase/auth";
 import { getFirebaseDb } from "./firebase";
 import type { ConnectedCredential, MockUser } from "@/store/authStore";
 import { firebaseUserToStoreUser } from "./firebase-auth";
 
+export type EmailProvider = "self" | "google" | "facebook" | "apple";
+
 const USERS = "users";
 
-// ── Firestore schema types ───────────────────────────────────────────────────
+type ProfileField<T> = { value: T | null; updatedBy: EmailProvider | "self" | null };
+
+export interface AttachedEmail {
+  email: string;
+  loginEnabled: boolean;
+  verified: boolean;
+  status: "active" | "inactive" | "blocked";
+  provider: EmailProvider;
+  previous_uid?: string | null;
+  audit: {
+    attachedAt: Timestamp;
+    verifiedAt: Timestamp | null;
+    lastUsedAt: Timestamp | null;
+  };
+}
+
+export interface AttachedPhoneNumber {
+  phoneNumber: string;
+  loginEnabled: boolean;
+  verified: boolean;
+  status: "active" | "inactive" | "blocked";
+  provider: "attached";
+  audit: {
+    attachedAt: Timestamp;
+    verifiedAt: Timestamp | null;
+    lastUsedAt: Timestamp | null;
+  };
+}
 
 export interface FirestoreUser {
   firebaseUid: string;
-  displayName: string | null;
-  firstName: string | null;
-  middleName: string | null;
-  lastName: string | null;
-  photoUrl: string | null;
+  displayName: ProfileField<string> | string | null;
+  firstName: ProfileField<string> | string | null;
+  middleName: ProfileField<string> | string | null;
+  lastName: ProfileField<string> | string | null;
+  photoUrl: ProfileField<string> | string | null;
   role: "user" | "admin";
   status: "active" | "inactive" | "blocked";
   profileCompleted: boolean;
-  attachedEmails: Array<{
-    email: string;
-    loginEnabled: boolean;
-    verified: boolean;
-    status: "active" | "inactive" | "blocked";
-    provider: "self" | "google" | "facebook" | "apple" | "attached";
-    previous_uid?: string | null;
-    audit: {
-      attachedAt: Timestamp;
-      verifiedAt: Timestamp | null;
-      lastUsedAt: Timestamp | null;
-    };
-  }>;
-  attachedPhoneNumbers: Array<{
-    phoneNumber: string;
-    loginEnabled: boolean;
-    verified: boolean;
-    status: "active" | "inactive" | "blocked";
-    provider: "attached";
-    audit: {
-      attachedAt: Timestamp;
-      verifiedAt: Timestamp | null;
-      lastUsedAt: Timestamp | null;
-    };
-  }>;
+  credentialEmails?: string[];
+  credentialPhones?: string[];
+  attachedEmails: AttachedEmail[];
+  attachedPhoneNumbers: AttachedPhoneNumber[];
   audit: {
     createdAt: Timestamp;
-    createdBy: "self" | "google" | "facebook" | "apple";
+    createdBy: EmailProvider;
     updatedAt: Timestamp | null;
     updatedBy: string | null;
     lastLoginAt: Timestamp;
@@ -61,7 +77,42 @@ export interface FirestoreUser {
   };
 }
 
-// ── Mapping helpers ──────────────────────────────────────────────────────────
+export interface UserDocMatch {
+  ref: DocumentReference;
+  snap: DocumentSnapshot;
+  data: FirestoreUser;
+}
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+export function normalizePhone(phone: string) {
+  return phone.trim().replace(/[\s()-]/g, "");
+}
+
+function profileValue<T>(field: ProfileField<T> | T | null | undefined): T | null {
+  if (field == null) return null;
+  if (typeof field === "object" && "value" in field) return field.value;
+  return field as T;
+}
+
+function profileField<T>(
+  value: T | null,
+  updatedBy: EmailProvider | "self" | null,
+): ProfileField<T> {
+  return { value, updatedBy: value ? updatedBy : null };
+}
+
+function splitName(displayName: string | null) {
+  if (!displayName) return { firstName: null, middleName: null, lastName: null };
+  const parts = displayName.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] ?? null,
+    middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : null,
+    lastName: parts.length > 1 ? parts[parts.length - 1] : null,
+  };
+}
 
 function initialsFrom(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -73,20 +124,50 @@ function tsToISO(ts: Timestamp | null | undefined): string {
   return ts.toDate().toISOString();
 }
 
+function emailEntry(
+  email: string,
+  provider: EmailProvider,
+  previousUid: string | null = null,
+): AttachedEmail {
+  const nowTs = Timestamp.now();
+  return {
+    email: normalizeEmail(email),
+    loginEnabled: true,
+    verified: true,
+    status: "active",
+    provider,
+    previous_uid: previousUid,
+    audit: {
+      attachedAt: nowTs,
+      verifiedAt: nowTs,
+      lastUsedAt: nowTs,
+    },
+  };
+}
+
+function providerToCredentialProvider(provider: EmailProvider): ConnectedCredential["provider"] {
+  return provider === "self" ? "email" : provider;
+}
+
+export function providerLabel(provider: EmailProvider) {
+  if (provider === "self") return "email/password";
+  return provider[0].toUpperCase() + provider.slice(1);
+}
+
 export function firestoreToMockUser(fsUser: FirestoreUser, hasPassword: boolean): MockUser {
   const primaryEmail = fsUser.attachedEmails[0]?.email ?? null;
+  const displayName = profileValue(fsUser.displayName);
+  const firstName = profileValue(fsUser.firstName);
+  const lastName = profileValue(fsUser.lastName);
+  const photoUrl = profileValue(fsUser.photoUrl);
   const name =
-    fsUser.displayName ||
-    (fsUser.firstName
-      ? [fsUser.firstName, fsUser.lastName].filter(Boolean).join(" ")
-      : null) ||
+    displayName ||
+    (firstName ? [firstName, lastName].filter(Boolean).join(" ") : null) ||
     primaryEmail?.split("@")[0] ||
     "HomeBee Member";
 
   const emailCredentials: ConnectedCredential[] = fsUser.attachedEmails.map((e, i) => ({
-    provider: (
-      e.provider === "self" || e.provider === "attached" ? "email" : e.provider
-    ) as ConnectedCredential["provider"],
+    provider: providerToCredentialProvider(e.provider),
     value: e.email,
     verified: e.verified,
     loginEnabled: e.loginEnabled,
@@ -114,7 +195,7 @@ export function firestoreToMockUser(fsUser: FirestoreUser, hasPassword: boolean)
     email: primaryEmail,
     phone: fsUser.attachedPhoneNumbers[0]?.phoneNumber ?? null,
     avatarInitials: initialsFrom(name),
-    avatarUrl: fsUser.photoUrl,
+    avatarUrl: photoUrl,
     city: "Dhaka",
     joinedYear: String(yearNum),
     verified: fsUser.attachedEmails[0]?.verified ?? false,
@@ -123,7 +204,10 @@ export function firestoreToMockUser(fsUser: FirestoreUser, hasPassword: boolean)
   };
 }
 
-// ── Firestore reads ──────────────────────────────────────────────────────────
+function snapToMatch(snap: DocumentSnapshot): UserDocMatch | null {
+  if (!snap.exists()) return null;
+  return { ref: snap.ref, snap, data: snap.data() as FirestoreUser };
+}
 
 export async function fetchUserDoc(uid: string): Promise<FirestoreUser | null> {
   const db = getFirebaseDb();
@@ -132,121 +216,231 @@ export async function fetchUserDoc(uid: string): Promise<FirestoreUser | null> {
   return snap.exists() ? (snap.data() as FirestoreUser) : null;
 }
 
-// ── Firestore writes ─────────────────────────────────────────────────────────
+export async function findUserDocByEmail(email: string): Promise<UserDocMatch | null> {
+  const db = getFirebaseDb();
+  if (!db) return null;
+  const normalized = normalizeEmail(email);
+  const q = query(
+    collection(db, USERS),
+    where("credentialEmails", "array-contains", normalized),
+    limit(1),
+  );
+  const direct = await getDocs(q);
+  const directMatch = direct.docs[0] ? snapToMatch(direct.docs[0]) : null;
+  if (directMatch) return directMatch;
+
+  // Compatibility for documents created before credentialEmails existed.
+  const all = await getDocs(collection(db, USERS));
+  for (const snap of all.docs) {
+    const data = snap.data() as FirestoreUser;
+    if (data.attachedEmails?.some((e) => normalizeEmail(e.email) === normalized)) {
+      await updateDoc(snap.ref, { credentialEmails: buildCredentialEmails(data) }).catch(() => {});
+      return { ref: snap.ref, snap, data };
+    }
+  }
+  return null;
+}
+
+export async function findUserDocByPhone(phone: string): Promise<UserDocMatch | null> {
+  const db = getFirebaseDb();
+  if (!db) return null;
+  const normalized = normalizePhone(phone);
+  const q = query(
+    collection(db, USERS),
+    where("credentialPhones", "array-contains", normalized),
+    limit(1),
+  );
+  const direct = await getDocs(q);
+  const directMatch = direct.docs[0] ? snapToMatch(direct.docs[0]) : null;
+  if (directMatch) return directMatch;
+
+  const all = await getDocs(collection(db, USERS));
+  for (const snap of all.docs) {
+    const data = snap.data() as FirestoreUser;
+    if (data.attachedPhoneNumbers?.some((p) => normalizePhone(p.phoneNumber) === normalized)) {
+      await updateDoc(snap.ref, { credentialPhones: buildCredentialPhones(data) }).catch(() => {});
+      return { ref: snap.ref, snap, data };
+    }
+  }
+  return null;
+}
+
+export function findEmailProviders(user: FirestoreUser, email: string) {
+  const normalized = normalizeEmail(email);
+  return (user.attachedEmails ?? []).filter(
+    (e) => normalizeEmail(e.email) === normalized && e.status === "active",
+  );
+}
+
+export function hasEnabledSelfEmail(user: FirestoreUser, email: string) {
+  return findEmailProviders(user, email).some(
+    (e) => e.provider === "self" && e.loginEnabled && e.verified && e.status === "active",
+  );
+}
+
+export function providerEntryExists(user: FirestoreUser, email: string, provider: EmailProvider) {
+  return findEmailProviders(user, email).some((e) => e.provider === provider);
+}
+
+function buildCredentialEmails(user: Pick<FirestoreUser, "attachedEmails">) {
+  return Array.from(
+    new Set((user.attachedEmails ?? []).map((e) => normalizeEmail(e.email)).filter(Boolean)),
+  );
+}
+
+function buildCredentialPhones(user: Pick<FirestoreUser, "attachedPhoneNumbers">) {
+  return Array.from(
+    new Set(
+      (user.attachedPhoneNumbers ?? []).map((p) => normalizePhone(p.phoneNumber)).filter(Boolean),
+    ),
+  );
+}
 
 export async function createEmailPasswordUserDoc(firebaseUser: User): Promise<void> {
   const db = getFirebaseDb();
   if (!db || !firebaseUser.email) return;
-  // serverTimestamp() cannot be used inside array values — use Timestamp.now() there
-  const nowTs = Timestamp.now();
-  const nowSrv = serverTimestamp();
+  const email = normalizeEmail(firebaseUser.email);
   await setDoc(doc(db, USERS, firebaseUser.uid), {
     firebaseUid: firebaseUser.uid,
-    displayName: firebaseUser.displayName,
-    firstName: null,
-    middleName: null,
-    lastName: null,
-    photoUrl: firebaseUser.photoURL,
+    displayName: profileField(firebaseUser.displayName, "self"),
+    firstName: profileField(null, null),
+    middleName: profileField(null, null),
+    lastName: profileField(null, null),
+    photoUrl: profileField(firebaseUser.photoURL, "self"),
     role: "user",
     status: "active",
     profileCompleted: false,
-    attachedEmails: [
-      {
-        email: firebaseUser.email,
-        loginEnabled: true,
-        verified: firebaseUser.emailVerified,
-        status: "active",
-        provider: "self",
-        previous_uid: null,
-        audit: {
-          attachedAt: nowTs,
-          verifiedAt: firebaseUser.emailVerified ? nowTs : null,
-          lastUsedAt: nowTs,
-        },
-      },
-    ],
+    credentialEmails: [email],
+    credentialPhones: [],
+    attachedEmails: [emailEntry(email, "self")],
     attachedPhoneNumbers: [],
     audit: {
-      createdAt: nowSrv,
+      createdAt: serverTimestamp(),
       createdBy: "self",
       updatedAt: null,
       updatedBy: null,
-      lastLoginAt: nowSrv,
+      lastLoginAt: serverTimestamp(),
       deletedAt: null,
       deletedBy: null,
     },
   });
 }
 
-export async function getOrCreateSocialUserDoc(
+export async function createSocialUserDoc(
   firebaseUser: User,
-  provider: "google" | "facebook" | "apple",
+  provider: Exclude<EmailProvider, "self">,
 ): Promise<void> {
   const db = getFirebaseDb();
-  if (!db) return;
-  const ref = doc(db, USERS, firebaseUser.uid);
-  const snap = await getDoc(ref);
-  if (snap.exists()) {
-    await updateDoc(ref, { "audit.lastLoginAt": serverTimestamp() });
-    return;
-  }
-  const nowTs = Timestamp.now();
-  const nowSrv = serverTimestamp();
-  const displayName = firebaseUser.displayName;
-  let firstName: string | null = null;
-  let lastName: string | null = null;
-  if (displayName) {
-    const parts = displayName.trim().split(/\s+/);
-    firstName = parts[0] || null;
-    lastName = parts.length > 1 ? parts.slice(1).join(" ") : null;
-  }
-  await setDoc(ref, {
+  if (!db || !firebaseUser.email) return;
+  const email = normalizeEmail(firebaseUser.email);
+  const displayName = firebaseUser.displayName ?? null;
+  const names = splitName(displayName);
+  await setDoc(doc(db, USERS, firebaseUser.uid), {
     firebaseUid: firebaseUser.uid,
-    displayName,
-    firstName,
-    middleName: null,
-    lastName,
-    photoUrl: firebaseUser.photoURL,
+    displayName: profileField(displayName, provider),
+    firstName: profileField(names.firstName, provider),
+    middleName: profileField(names.middleName, provider),
+    lastName: profileField(names.lastName, provider),
+    photoUrl: profileField(firebaseUser.photoURL, provider),
     role: "user",
     status: "active",
     profileCompleted: false,
-    attachedEmails: firebaseUser.email
-      ? [
-          {
-            email: firebaseUser.email,
-            loginEnabled: true,
-            verified: true,
-            status: "active",
-            provider,
-            audit: { attachedAt: nowTs, verifiedAt: nowTs, lastUsedAt: nowTs },
-          },
-        ]
-      : [],
+    credentialEmails: [email],
+    credentialPhones: [],
+    attachedEmails: [emailEntry(email, provider)],
     attachedPhoneNumbers: [],
     audit: {
-      createdAt: nowSrv,
+      createdAt: serverTimestamp(),
       createdBy: provider,
       updatedAt: null,
       updatedBy: null,
-      lastLoginAt: nowSrv,
+      lastLoginAt: serverTimestamp(),
       deletedAt: null,
       deletedBy: null,
     },
   });
 }
 
-export async function updateUserPhotoUrl(uid: string, photoUrl: string | null): Promise<void> {
-  const db = getFirebaseDb();
-  if (!db) return;
-  try {
-    await updateDoc(doc(db, USERS, uid), {
-      photoUrl: photoUrl ?? null,
-      "audit.updatedAt": serverTimestamp(),
-      "audit.updatedBy": "self",
-    });
-  } catch (err) {
-    console.warn("[updateUserPhotoUrl] Firestore update failed:", err);
+export async function appendEmailProvider(
+  match: UserDocMatch,
+  email: string,
+  provider: EmailProvider,
+  previousUid: string | null = null,
+) {
+  if (providerEntryExists(match.data, email, provider)) {
+    await markEmailProviderUsed(match, email, provider);
+    return;
   }
+  const attachedEmails = [
+    ...(match.data.attachedEmails ?? []),
+    emailEntry(email, provider, previousUid),
+  ];
+  await updateDoc(match.ref, {
+    attachedEmails,
+    credentialEmails: buildCredentialEmails({ attachedEmails }),
+    "audit.lastLoginAt": serverTimestamp(),
+  });
+}
+
+export async function markEmailProviderUsed(
+  match: UserDocMatch,
+  email: string,
+  provider: EmailProvider,
+) {
+  const normalized = normalizeEmail(email);
+  const now = Timestamp.now();
+  const attachedEmails = (match.data.attachedEmails ?? []).map((entry) =>
+    normalizeEmail(entry.email) === normalized && entry.provider === provider
+      ? { ...entry, audit: { ...entry.audit, lastUsedAt: now } }
+      : entry,
+  );
+  await updateDoc(match.ref, {
+    attachedEmails,
+    credentialEmails: buildCredentialEmails({ attachedEmails }),
+    "audit.lastLoginAt": serverTimestamp(),
+  });
+}
+
+export async function markPhoneAndSelfEmailUsed(match: UserDocMatch, phone: string, email: string) {
+  const normalizedPhone = normalizePhone(phone);
+  const normalizedEmail = normalizeEmail(email);
+  const now = Timestamp.now();
+  const attachedPhoneNumbers = (match.data.attachedPhoneNumbers ?? []).map((entry) =>
+    normalizePhone(entry.phoneNumber) === normalizedPhone
+      ? { ...entry, audit: { ...entry.audit, lastUsedAt: now } }
+      : entry,
+  );
+  const attachedEmails = (match.data.attachedEmails ?? []).map((entry) =>
+    normalizeEmail(entry.email) === normalizedEmail && entry.provider === "self"
+      ? { ...entry, audit: { ...entry.audit, lastUsedAt: now } }
+      : entry,
+  );
+  await updateDoc(match.ref, {
+    attachedPhoneNumbers,
+    attachedEmails,
+    credentialPhones: buildCredentialPhones({ attachedPhoneNumbers }),
+    credentialEmails: buildCredentialEmails({ attachedEmails }),
+    "audit.lastLoginAt": serverTimestamp(),
+  });
+}
+
+export function primarySelfEmailForPhoneLogin(user: FirestoreUser): string | null {
+  return (
+    user.attachedEmails?.find(
+      (e) => e.provider === "self" && e.status === "active" && e.loginEnabled && e.verified,
+    )?.email ?? null
+  );
+}
+
+export function hasEnabledVerifiedPhone(user: FirestoreUser, phone: string) {
+  const normalizedPhone = normalizePhone(phone);
+  return user.attachedPhoneNumbers?.some(
+    (p) =>
+      normalizePhone(p.phoneNumber) === normalizedPhone &&
+      p.verified &&
+      p.loginEnabled &&
+      p.status === "active",
+  );
 }
 
 export async function updateLastLogin(uid: string): Promise<void> {
@@ -257,28 +451,62 @@ export async function updateLastLogin(uid: string): Promise<void> {
       "audit.lastLoginAt": serverTimestamp(),
     });
   } catch {
-    // doc may not exist yet for legacy accounts
+    // doc may not exist for legacy accounts
   }
 }
 
-// ── Resolve for store (primary entry point) ──────────────────────────────────
+export async function updateUserPhotoUrl(uid: string, photoUrl: string | null): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db) return;
+  try {
+    await updateDoc(doc(db, USERS, uid), {
+      photoUrl: profileField(photoUrl, "self"),
+      "audit.updatedAt": serverTimestamp(),
+      "audit.updatedBy": "self",
+    });
+  } catch (err) {
+    console.warn("[updateUserPhotoUrl] Firestore update failed:", err);
+  }
+}
+
+export async function updateUserProfileFields(
+  uid: string,
+  fields: Partial<{
+    displayName: string | null;
+    firstName: string | null;
+    middleName: string | null;
+    lastName: string | null;
+    photoUrl: string | null;
+  }>,
+) {
+  const db = getFirebaseDb();
+  if (!db) return;
+  const update: Record<string, unknown> = {
+    "audit.updatedAt": serverTimestamp(),
+    "audit.updatedBy": "self",
+  };
+  for (const [key, value] of Object.entries(fields)) {
+    update[key] = profileField(value ?? null, "self");
+  }
+  await updateDoc(doc(db, USERS, uid), update);
+}
 
 export async function resolveStoreUser(
   firebaseUser: User,
 ): Promise<{ user: MockUser; profileCompleted: boolean }> {
-  const hasPassword = firebaseUser.providerData.some(
-    (p) => p.providerId === "password",
-  );
-
   let fsUser: FirestoreUser | null = null;
   try {
     fsUser = await fetchUserDoc(firebaseUser.uid);
+    if (!fsUser && firebaseUser.email) {
+      fsUser = (await findUserDocByEmail(firebaseUser.email))?.data ?? null;
+    }
   } catch {
-    // network/permissions failure — fall back gracefully
+    // network/permissions failure - fall back gracefully
   }
 
   if (fsUser) {
     try {
+      const hasPassword = firebaseUser.providerData.some((p) => p.providerId === "password");
       return {
         user: firestoreToMockUser(fsUser, hasPassword),
         profileCompleted: fsUser.profileCompleted,
@@ -288,10 +516,8 @@ export async function resolveStoreUser(
     }
   }
 
-  // Fallback: Firestore not configured, doc missing, or mapping error
   const fallback = await firebaseUserToStoreUser(firebaseUser);
   return { user: fallback, profileCompleted: false };
 }
 
-// Re-export for convenience
-export { updateProfile };
+export { updateProfile, deleteField };

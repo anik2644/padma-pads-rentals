@@ -4,9 +4,11 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Values {
-  email: string;
+  identifier: string;
+  method: "email" | "phone";
   password: string;
 }
 
@@ -17,14 +19,16 @@ interface Props {
 
 export function AuthForm({ onSubmit, submitting }: Props) {
   const { t } = useTranslation();
-  const [email, setEmail] = useState("");
+  const [method, setMethod] = useState<"email" | "phone">("email");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function validate(): string | null {
-    if (!email.trim()) return "auth.form.enterEmail";
-    if (!/^\S+@\S+\.\S+$/.test(email)) return "auth.form.invalidEmail";
+    if (!identifier.trim())
+      return method === "email" ? "auth.form.enterEmail" : "Enter your phone number.";
+    if (method === "email" && !/^\S+@\S+\.\S+$/.test(identifier)) return "auth.form.invalidEmail";
     if (password.length < 6) return "auth.form.passwordMin";
     return null;
   }
@@ -37,21 +41,37 @@ export function AuthForm({ onSubmit, submitting }: Props) {
       return;
     }
     setError(null);
-    await onSubmit({ email: email.trim(), password });
+    await onSubmit({ identifier: identifier.trim(), method, password });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <Tabs
+        value={method}
+        onValueChange={(value) => {
+          setMethod(value as "email" | "phone");
+          setIdentifier("");
+          setError(null);
+        }}
+      >
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="phone">Phone</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="space-y-1.5">
-        <Label htmlFor="email">{t("auth.form.emailAddress")}</Label>
+        <Label htmlFor="identifier">
+          {method === "email" ? t("auth.form.emailAddress") : "Phone number"}
+        </Label>
         <Input
-          id="email"
-          type="email"
-          placeholder={t("auth.form.emailPlaceholder")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          id="identifier"
+          type={method === "email" ? "email" : "tel"}
+          placeholder={method === "email" ? t("auth.form.emailPlaceholder") : "+8801712345678"}
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
           className="h-11"
-          autoComplete="email"
+          autoComplete={method === "email" ? "email" : "tel"}
         />
       </div>
 
@@ -84,7 +104,9 @@ export function AuthForm({ onSubmit, submitting }: Props) {
       </div>
 
       {error && (
-        <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">{t(error)}</p>
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error.startsWith("auth.") ? t(error) : error}
+        </p>
       )}
 
       <Button type="submit" className="h-11 w-full text-sm font-semibold" disabled={submitting}>

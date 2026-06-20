@@ -11,6 +11,9 @@ import { firebaseUserToStoreUser } from "@/lib/firebase-auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
 import { useTranslation } from "react-i18next";
+import type { User } from "firebase/auth";
+
+const PENDING_LINK_EMAIL_KEY = "homebee:pending-email-password-link-email";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -41,8 +44,22 @@ export function AppShell({ children }: { children: ReactNode }) {
           clearAuth();
           return;
         }
+        const pendingLinkEmail = sessionStorage.getItem(PENDING_LINK_EMAIL_KEY);
+        if (
+          pendingLinkEmail &&
+          isAuthRoute &&
+          normalizeEmail(firebaseUser.email) !== pendingLinkEmail
+        ) {
+          clearAuth();
+          await auth.signOut().catch(() => {});
+          return;
+        }
+        if (isUnverifiedEmailPasswordUser(firebaseUser)) {
+          clearAuth();
+          return;
+        }
         // Try Firestore-backed resolution; fall back to bare Firebase Auth data
-        let resolved = await resolveStoreUser(firebaseUser).catch(async () => ({
+        const resolved = await resolveStoreUser(firebaseUser).catch(async () => ({
           user: await firebaseUserToStoreUser(firebaseUser),
           profileCompleted: false as boolean,
         }));
@@ -57,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         setAuthReady(true);
       }
     });
-  }, [clearAuth, setToken, setUser]);
+  }, [clearAuth, isAuthRoute, setToken, setUser]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -98,4 +115,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Toaster position="top-right" />
     </div>
   );
+}
+
+function isUnverifiedEmailPasswordUser(user: User) {
+  return (
+    user.providerData.some((provider) => provider.providerId === "password") && !user.emailVerified
+  );
+}
+
+function normalizeEmail(email: string | null) {
+  return email?.trim().toLowerCase() ?? "";
 }

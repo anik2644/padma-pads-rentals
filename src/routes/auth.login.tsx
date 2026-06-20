@@ -1,17 +1,41 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { useCallback, useState } from "react";
+import {
+  FacebookAuthProvider,
+  GoogleAuthProvider,
+  OAuthProvider,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  type AuthProvider,
+  type User,
+} from "firebase/auth";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { SocialButtons } from "@/components/auth/SocialButtons";
+import { EmailVerificationModal } from "@/components/auth/EmailVerificationModal";
 import { getFirebaseAuth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
 import {
-  getOrCreateSocialUserDoc,
+  appendEmailProvider,
+  createSocialUserDoc,
+  findEmailProviders,
+  findUserDocByEmail,
+  findUserDocByPhone,
+  hasEnabledSelfEmail,
+  hasEnabledVerifiedPhone,
+  markEmailProviderUsed,
+  markPhoneAndSelfEmailUsed,
+  normalizeEmail,
+  normalizePhone,
+  primarySelfEmailForPhoneLogin,
+  providerLabel,
   resolveStoreUser,
-  updateLastLogin,
+  type EmailProvider,
 } from "@/lib/firestore-user";
+
+type SocialProvider = Exclude<EmailProvider, "self">;
 
 export const Route = createFileRoute("/auth/login")({
   component: LoginPage,
@@ -23,8 +47,28 @@ function LoginPage() {
   const setUser = useAuthStore((s) => s.setUser);
   const setToken = useAuthStore((s) => s.setToken);
   const [submitting, setSubmitting] = useState(false);
+  const [verificationUser, setVerificationUser] = useState<User | null>(null);
 
-  async function handleLogin({ email, password }: { email: string; password: string }) {
+  const finishAuth = useCallback(
+    async (user: User) => {
+      const [storeData, token] = await Promise.all([resolveStoreUser(user), user.getIdToken()]);
+      setUser(storeData.user, storeData.profileCompleted);
+      setToken(token);
+      toast.success(t("auth.welcomeBack", { name: storeData.user.name.split(" ")[0] }));
+      navigate({ to: "/" });
+    },
+    [navigate, setToken, setUser, t],
+  );
+
+  async function handleLogin({
+    identifier,
+    method,
+    password,
+  }: {
+    identifier: string;
+    method: "email" | "phone";
+    password: string;
+  }) {
     setSubmitting(true);
     try {
       const auth = getFirebaseAuth();
@@ -32,17 +76,36 @@ function LoginPage() {
         toast.error(t("auth.firebaseMissing"));
         return;
       }
+
+      if (method === "phone") {
+        await handlePhoneLogin(identifier, password);
+        return;
+      }
+
+      const email = normalizeEmail(identifier);
+      const existing = await findUserDocByEmail(email);
+      if (!existing) {
+        toast.error("No account found with this email.");
+        return;
+      }
+      if (!hasEnabledSelfEmail(existing.data, email)) {
+        const providers = findEmailProviders(existing.data, email)
+          .filter((entry) => entry.provider !== "self")
+          .map((entry) => providerLabel(entry.provider));
+        toast.error(
+          `This email is registered with ${providers.join("/") || "a social provider"}. Please continue with that provider.`,
+        );
+        return;
+      }
+
       const credential = await signInWithEmailAndPassword(auth, email, password);
-      // Non-blocking Firestore update
-      updateLastLogin(credential.user.uid).catch(() => {});
-      const [storeData, token] = await Promise.all([
-        resolveStoreUser(credential.user),
-        credential.user.getIdToken(),
-      ]);
-      setUser(storeData.user, storeData.profileCompleted);
-      setToken(token);
-      toast.success(t("auth.welcomeBack", { name: storeData.user.name.split(" ")[0] }));
-      navigate({ to: "/" });
+      if (!credential.user.emailVerified) {
+        await sendEmailVerification(credential.user).catch(() => {});
+        setVerificationUser(credential.user);
+        return;
+      }
+      await markEmailProviderUsed(existing, email, "self");
+      await finishAuth(credential.user);
     } catch (err) {
       console.error("[login] email/password error:", err);
       toast.error(firebaseAuthMessage(err, t));
@@ -51,7 +114,40 @@ function LoginPage() {
     }
   }
 
-  async function handleGoogle() {
+  async function handlePhoneLogin(phoneInput: string, password: string) {
+    const auth = getFirebaseAuth();
+    if (!auth) return;
+    const phone = normalizePhone(phoneInput);
+    const existing = await findUserDocByPhone(phone);
+    if (!existing || !hasEnabledVerifiedPhone(existing.data, phone)) {
+      toast.error("No verified login-enabled account found with this phone number.");
+      return;
+    }
+    const primaryEmail = primarySelfEmailForPhoneLogin(existing.data);
+    if (!primaryEmail) {
+      toast.error("This phone number is not attached to an email/password login.");
+      return;
+    }
+    const credential = await signInWithEmailAndPassword(auth, primaryEmail, password);
+    if (!credential.user.emailVerified) {
+      await sendEmailVerification(credential.user).catch(() => {});
+      setVerificationUser(credential.user);
+      return;
+    }
+    await markPhoneAndSelfEmailUsed(existing, phone, primaryEmail);
+    await finishAuth(credential.user);
+  }
+
+  async function handleVerifiedLogin(user: User) {
+    setVerificationUser(null);
+    if (user.email) {
+      const existing = await findUserDocByEmail(user.email);
+      if (existing) await markEmailProviderUsed(existing, user.email, "self");
+    }
+    await finishAuth(user);
+  }
+
+  async function handleSocial(provider: SocialProvider) {
     setSubmitting(true);
     try {
       const auth = getFirebaseAuth();
@@ -59,19 +155,19 @@ function LoginPage() {
         toast.error(t("auth.firebaseMissing"));
         return;
       }
-      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
-      // Non-blocking Firestore sync
-      getOrCreateSocialUserDoc(credential.user, "google").catch((err) =>
-        console.warn("[google login] Firestore write failed:", err),
-      );
-      const [storeData, token] = await Promise.all([
-        resolveStoreUser(credential.user),
-        credential.user.getIdToken(),
-      ]);
-      setUser(storeData.user, storeData.profileCompleted);
-      setToken(token);
-      toast.success(t("auth.welcomeBack", { name: storeData.user.name.split(" ")[0] }));
-      navigate({ to: "/" });
+      const credential = await signInWithPopup(auth, firebaseProvider(provider));
+      const email = credential.user.email ? normalizeEmail(credential.user.email) : null;
+      if (!email) {
+        toast.error(`${providerLabel(provider)} did not return an email address.`);
+        return;
+      }
+      const existing = await findUserDocByEmail(email);
+      if (!existing) {
+        await createSocialUserDoc(credential.user, provider);
+      } else {
+        await appendEmailProvider(existing, email, provider);
+      }
+      await finishAuth(credential.user);
     } catch (err) {
       toast.error(firebaseAuthMessage(err, t));
     } finally {
@@ -93,14 +189,39 @@ function LoginPage() {
         </Link>
       </p>
       <Divider />
-      <SocialButtons onProvider={handleGoogle} disabled={submitting} mode="login" />
+      <SocialButtons onProvider={handleSocial} disabled={submitting} mode="login" />
+      <EmailVerificationModal
+        open={!!verificationUser}
+        user={verificationUser}
+        onVerified={handleVerifiedLogin}
+        deleteUserOnCancel={false}
+        onCancel={async () => {
+          setVerificationUser(null);
+          toast.error("Email is not verified yet.");
+        }}
+      />
     </div>
   );
 }
 
-function firebaseAuthMessage(err: unknown, t: (key: string, options?: Record<string, unknown>) => string) {
+function firebaseProvider(provider: SocialProvider): AuthProvider {
+  if (provider === "google") return new GoogleAuthProvider();
+  if (provider === "facebook") {
+    const facebook = new FacebookAuthProvider();
+    facebook.addScope("email");
+    return facebook;
+  }
+  const apple = new OAuthProvider("apple.com");
+  apple.addScope("email");
+  apple.addScope("name");
+  return apple;
+}
+
+function firebaseAuthMessage(
+  err: unknown,
+  t: (key: string, options?: Record<string, unknown>) => string,
+) {
   const code = typeof err === "object" && err && "code" in err ? String(err.code) : "";
-  // Wrong credentials — Firebase SDK 10+ unifies these into invalid-credential
   if (
     code === "auth/invalid-credential" ||
     code === "auth/invalid-login-credentials" ||
@@ -115,9 +236,7 @@ function firebaseAuthMessage(err: unknown, t: (key: string, options?: Record<str
   if (code === "auth/popup-blocked") return t("auth.errors.popupBlocked");
   if (code === "auth/account-exists-with-different-credential")
     return t("auth.errors.differentCredential");
-  if (code === "auth/unauthorized-domain")
-    return t("auth.errors.unauthorizedDomain");
-  // Surface the raw code in development so it's easy to add new cases
+  if (code === "auth/unauthorized-domain") return t("auth.errors.unauthorizedDomain");
   return code ? t("auth.errors.loginFailedCode", { code }) : t("auth.errors.loginFailed");
 }
 
