@@ -271,6 +271,7 @@
     "myAddedListSub": "Properties you have added",
     "uploading": "Uploading photo...",
     "clickToChange": "Click to change photo",
+    "photoSelected": "Photo selected. Save to upload.",
     "photoUploadFailed": "Photo upload failed. Please try again.",
     "waitForUpload": "Please wait for the photo to finish uploading.",
     "saveFailed": "Could not save profile. Please try again."

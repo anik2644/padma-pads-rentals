@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { PropertyCard, PropertyCardSkeleton } from "@/components/property/PropertyCard";
-import { listOwnedResidentialListings, type PropertyListItem } from "@/lib/residential";
+import { listAdvertisements } from "@/lib/advertisements";
+import type { PropertyListItem } from "@/lib/residential";
 import { useAuthStore } from "@/store/authStore";
 
 export const Route = createFileRoute("/my-listings")({
@@ -20,18 +21,19 @@ function MyListingsPage() {
   const [items, setItems] = useState<PropertyListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const ownerId = user?.id;
 
   useEffect(() => {
-    if (!user) return;
+    if (!ownerId) return;
     setLoading(true);
-    listOwnedResidentialListings(user.id, 1, 50)
+    listAdvertisements({ ownerId, page: 1, pageSize: 50 })
       .then(({ items: rows, total: t }) => {
         setItems(rows);
         setTotal(t);
       })
       .catch((err) => toast.error(err instanceof Error ? err.message : t("myListings.loadError")))
       .finally(() => setLoading(false));
-  }, [user?.id]);
+  }, [ownerId, t]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-10">

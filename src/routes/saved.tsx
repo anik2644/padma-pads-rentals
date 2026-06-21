@@ -1,62 +1,60 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Heart, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  deleteFavorite,
-  FAVORITES_CHANGED_EVENT,
-  listFavorites,
-  notifyFavoritesChanged,
-  type Favorite,
-} from "@/lib/favorites";
-import { useLanguageStore } from "@/store/languageStore";
+import { PropertyCard, PropertyCardSkeleton } from "@/components/property/PropertyCard";
+import { fetchAdvertisementCard } from "@/lib/advertisements";
+import { FAVORITES_CHANGED_EVENT, listFavorites, type Favorite } from "@/lib/favorites";
+import type { PropertyListItem } from "@/lib/residential";
+import { useAuthStore } from "@/store/authStore";
 
 export const Route = createFileRoute("/saved")({
   head: () => ({ meta: [{ title: "Saved Listings — HomeBee" }] }),
   component: SavedPage,
 });
 
+interface SavedProperty {
+  favorite: Favorite;
+  property: PropertyListItem;
+}
+
 function SavedPage() {
   const { t } = useTranslation();
-  const { lang } = useLanguageStore();
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+  const [items, setItems] = useState<SavedProperty[]>([]);
   const [totalFavorites, setTotalFavorites] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listFavorites({ pageSize: 50 });
-      setFavorites(res.items);
-      setTotalFavorites(res.meta.totalItems);
+      const res = await listFavorites({ userId, page: 1, pageSize: 50 });
+      const hydrated = await Promise.all(
+        res.items.map(async (favorite) => {
+          const property = await fetchAdvertisementCard(
+            favorite.advertisementId,
+            favorite.propertyId,
+          );
+          return property ? { favorite, property } : null;
+        }),
+      );
+      setItems(hydrated.filter((item): item is SavedProperty => item !== null));
+      setTotalFavorites(res.meta.totalItems ?? res.items.length);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("saved.loadError"));
     } finally {
       setLoading(false);
     }
-  }
+  }, [t, userId]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
     window.addEventListener(FAVORITES_CHANGED_EVENT, refresh);
     return () => window.removeEventListener(FAVORITES_CHANGED_EVENT, refresh);
-  }, []);
-
-  async function removeFavorite(favorite: Favorite) {
-    try {
-      await deleteFavorite({
-        advertisementId: favorite.advertisementId,
-      });
-      await refresh();
-      notifyFavoritesChanged();
-      toast.success(t("actions.removedSaved"));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("saved.removeError"));
-    }
-  }
+  }, [refresh]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-10">
@@ -72,46 +70,26 @@ function SavedPage() {
         </div>
       </header>
 
-      {!loading && favorites.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <PropertyCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border p-10 text-center">
           <p className="text-muted-foreground">{t("saved.empty")}</p>
-          <Button asChild className="mt-4"><Link to="/residential">{t("saved.browse")}</Link></Button>
+          <Button asChild className="mt-4">
+            <Link to="/residential">{t("saved.browse")}</Link>
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {favorites.map((favorite) => (
-            <article key={favorite.id} className="rounded-2xl border border-border bg-card p-4 shadow-card">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Badge variant="outline">{t("saved.badge")}</Badge>
-                  <h2 className="mt-3 font-semibold">{t("saved.property", { id: favorite.propertyId })}</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("saved.advertisement", { id: favorite.advertisementId })}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {t("saved.savedAt", { date: formatDateTime(favorite.audit.createdAt, lang) })}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => removeFavorite(favorite)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </article>
+          {items.map(({ favorite, property }) => (
+            <PropertyCard key={favorite.id} item={property} />
           ))}
         </div>
       )}
     </div>
   );
-}
-
-function formatDateTime(value: string, lang: "en" | "bn") {
-  return new Intl.DateTimeFormat(lang, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
 }

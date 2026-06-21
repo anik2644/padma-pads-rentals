@@ -1,9 +1,23 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, MapPin, Maximize2, Building2, Phone, MessageCircle,
-  Heart, Share2, Shield, Clock, CheckCircle2, CalendarDays, Layers,
-  Wifi, Car, Zap, Coffee,
+  ArrowLeft,
+  MapPin,
+  Maximize2,
+  Building2,
+  Phone,
+  MessageCircle,
+  Heart,
+  Share2,
+  Shield,
+  Clock,
+  CheckCircle2,
+  CalendarDays,
+  Layers,
+  Wifi,
+  Car,
+  Zap,
+  Coffee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +29,14 @@ import { getCommercialDetail } from "@/lib/mock-data";
 import { formatBDT, formatDate } from "@/lib/format";
 import { useAuthStore } from "@/store/authStore";
 import { VisitRequestPanel } from "@/components/property/VisitRequestPanel";
+import { PropertyMediaGallery } from "@/components/property/PropertyMediaGallery";
 import { trackPropertyView } from "@/lib/property-view-tracking";
-import { createFavorite, deleteFavorite, listFavorites, notifyFavoritesChanged } from "@/lib/favorites";
+import {
+  createFavorite,
+  deleteFavorite,
+  listFavorites,
+  notifyFavoritesChanged,
+} from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/commercial/$id")({
@@ -48,7 +68,6 @@ function CommercialDetail() {
   const user = useAuthStore((s) => s.user);
   const [saved, setSaved] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
-  const [activeImg, setActiveImg] = useState(0);
   const advertisementId = `commercial-${item.id}`;
   const ownerId = `owner-${item.contact.name.toLowerCase().replace(/\W+/g, "-")}`;
 
@@ -100,11 +119,12 @@ function CommercialDetail() {
         <ArrowLeft className="h-4 w-4" /> {t("detail.backCommercial")}
       </Link>
 
-      {/* Gallery */}
-      <div className="grid gap-3 md:grid-cols-4">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-muted md:col-span-3">
-          <img src={item.gallery[activeImg]} alt={item.name} className="h-full w-full object-cover" />
-          <div className="absolute right-3 top-3 flex gap-2">
+      <PropertyMediaGallery
+        photos={item.gallery}
+        videos={item.videos}
+        title={item.name}
+        actions={
+          <>
             <button
               onClick={toggleFavorite}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur transition hover:scale-105"
@@ -119,23 +139,9 @@ function CommercialDetail() {
             >
               <Share2 className="h-4 w-4" />
             </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
-          {item.gallery.slice(0, 4).map((g: string, i: number) => (
-            <button
-              key={i}
-              onClick={() => setActiveImg(i)}
-              className={cn(
-                "aspect-[4/3] overflow-hidden rounded-2xl ring-2 transition",
-                i === activeImg ? "ring-primary" : "ring-transparent hover:ring-border",
-              )}
-            >
-              <img src={g} alt="" className="h-full w-full object-cover" />
-            </button>
-          ))}
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Main content */}
@@ -143,7 +149,9 @@ function CommercialDetail() {
           {/* Title & price */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <Badge className="mb-2 capitalize">{t(`commercial.types.${item.type}`, { defaultValue: item.type })}</Badge>
+              <Badge className="mb-2 capitalize">
+                {t(`commercial.types.${item.type}`, { defaultValue: item.type })}
+              </Badge>
               <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{item.name}</h1>
               <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
                 <MapPin className="h-4 w-4" /> {item.area}, {item.city}, {item.division}
@@ -152,13 +160,21 @@ function CommercialDetail() {
             <div className="text-right">
               <p className="text-3xl font-bold text-primary">{formatBDT(item.rent)}</p>
               <p className="text-sm text-muted-foreground">{t("commercial.perMonth")}</p>
-              {item.negotiable && <Badge variant="secondary" className="mt-1">{t("detail.negotiable")}</Badge>}
+              {item.negotiable && (
+                <Badge variant="secondary" className="mt-1">
+                  {t("detail.negotiable")}
+                </Badge>
+              )}
             </div>
           </div>
 
           {/* Stat row */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat icon={Maximize2} label={t("detail.size")} value={`${item.sizeSqft} ${t("commercial.sizeUnit")}`} />
+            <Stat
+              icon={Maximize2}
+              label={t("detail.size")}
+              value={`${item.sizeSqft} ${t("commercial.sizeUnit")}`}
+            />
             <Stat icon={Layers} label={t("detail.floor")} value={`${item.floorNumber}th`} />
             <Stat icon={Building2} label={t("detail.rooms")} value={String(item.rooms)} />
             <Stat icon={Coffee} label={t("detail.cabins")} value={String(item.cabins)} />
@@ -210,7 +226,10 @@ function CommercialDetail() {
                 <InfoRow label={t("detail.advance")} value={formatBDT(item.advance)} />
                 <InfoRow label={t("detail.minContract")} value={`${item.minimumContract} months`} />
                 <InfoRow label={t("detail.availableFrom")} value={formatDate(item.availableFrom)} />
-                <InfoRow label={t("detail.negotiable")} value={item.negotiable ? t("actions.yes") : t("actions.no")} />
+                <InfoRow
+                  label={t("detail.negotiable")}
+                  value={item.negotiable ? t("actions.yes") : t("actions.no")}
+                />
                 {item.remarks && <InfoRow label={t("detail.remarks")} value={item.remarks} />}
               </dl>
             </div>
@@ -220,9 +239,24 @@ function CommercialDetail() {
           <section>
             <h2 className="mb-3 text-lg font-semibold">{t("detail.rulesTerms")}</h2>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>• {t("detail.businessTypeAllowed")}: <span className="text-foreground font-medium">{item.rules.businessTypeAllowed}</span></p>
-              <p>• {t("detail.access247")}: <span className="text-foreground font-medium">{item.rules.access247 ? t("actions.yes") : t("actions.no")}</span></p>
-              <p>• {t("detail.renovationAllowed")}: <span className="text-foreground font-medium">{item.rules.renovationAllowed ? t("actions.yes") : t("actions.no")}</span></p>
+              <p>
+                • {t("detail.businessTypeAllowed")}:{" "}
+                <span className="text-foreground font-medium">
+                  {item.rules.businessTypeAllowed}
+                </span>
+              </p>
+              <p>
+                • {t("detail.access247")}:{" "}
+                <span className="text-foreground font-medium">
+                  {item.rules.access247 ? t("actions.yes") : t("actions.no")}
+                </span>
+              </p>
+              <p>
+                • {t("detail.renovationAllowed")}:{" "}
+                <span className="text-foreground font-medium">
+                  {item.rules.renovationAllowed ? t("actions.yes") : t("actions.no")}
+                </span>
+              </p>
             </div>
           </section>
 
@@ -251,19 +285,26 @@ function CommercialDetail() {
                   {item.contact.name}
                   {item.contact.verified && <Shield className="h-4 w-4 text-secondary" />}
                 </p>
-                <p className="text-xs text-muted-foreground">{t("detail.memberSince", { year: item.contact.memberSince })}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("detail.memberSince", { year: item.contact.memberSince })}
+                </p>
               </div>
             </div>
             <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" /> {t("detail.responds", { time: item.contact.responseTime })}
+              <Clock className="h-3.5 w-3.5" />{" "}
+              {t("detail.responds", { time: item.contact.responseTime })}
             </div>
             <Separator className="my-4" />
             <div className="mb-4 flex items-center gap-2 text-sm">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              {t("detail.availableFrom")} <span className="font-semibold">{formatDate(item.availableFrom)}</span>
+              {t("detail.availableFrom")}{" "}
+              <span className="font-semibold">{formatDate(item.availableFrom)}</span>
             </div>
             <div className="space-y-2">
-              <Button className="w-full gap-2" onClick={() => toast.success(t("detail.callingOwner"))}>
+              <Button
+                className="w-full gap-2"
+                onClick={() => toast.success(t("detail.callingOwner"))}
+              >
                 <Phone className="h-4 w-4" /> {item.contact.phone}
               </Button>
               <Button variant="outline" className="w-full gap-2" asChild>
@@ -282,7 +323,11 @@ function CommercialDetail() {
                   <MessageCircle className="h-4 w-4" /> {t("detail.messageOwner")}
                 </Link>
               </Button>
-              <Button variant="outline" className="w-full gap-2" onClick={() => toast.success(t("detail.visitSent"))}>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => toast.success(t("detail.visitSent"))}
+              >
                 <CalendarDays className="h-4 w-4" /> {t("detail.scheduleVisit")}
               </Button>
             </div>

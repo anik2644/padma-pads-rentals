@@ -65,10 +65,9 @@ import {
   normalizeEmail,
   normalizePhone,
   resolveStoreUser,
-  updateUserProfileFields,
 } from "@/lib/firestore-user";
-import { uploadProfilePhoto } from "@/lib/file-upload";
 import { mockAuth } from "@/lib/mock-auth";
+import { updateMyProfile } from "@/lib/user-profile-api";
 import { countFavorites, FAVORITES_CHANGED_EVENT } from "@/lib/favorites";
 import { countMessages } from "@/lib/property-messages";
 import { countOwnedResidentialListings } from "@/lib/residential";
@@ -255,7 +254,7 @@ function EditProfileDialog() {
   const [middleName, setMiddleName] = useState(initialNames.middleName);
   const [lastName, setLastName] = useState(initialNames.lastName);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
-  const [uploading, setUploading] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   function reset() {
@@ -265,7 +264,7 @@ function EditProfileDialog() {
     setMiddleName(names.middleName);
     setLastName(names.lastName);
     setAvatarUrl(user.avatarUrl ?? "");
-    setUploading(false);
+    setProfilePhoto(null);
   }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -276,22 +275,9 @@ function EditProfileDialog() {
       return;
     }
 
-    // Show local preview immediately while uploading
     const localPreview = URL.createObjectURL(file);
     setAvatarUrl(localPreview);
-    setUploading(true);
-
-    try {
-      const uploadedUrl = await uploadProfilePhoto(file);
-      setAvatarUrl(uploadedUrl);
-    } catch (err) {
-      console.error("[profile] photo upload failed:", err);
-      toast.error(t("profile.photoUploadFailed"));
-      setAvatarUrl(user.avatarUrl ?? "");
-    } finally {
-      URL.revokeObjectURL(localPreview);
-      setUploading(false);
-    }
+    setProfilePhoto(file);
   }
 
   async function save(e: React.FormEvent) {
@@ -300,13 +286,8 @@ function EditProfileDialog() {
     const cleanFirstName = firstName.trim();
     const cleanMiddleName = middleName.trim();
     const cleanLastName = lastName.trim();
-    const cleanPhotoUrl = avatarUrl.trim();
     if (!cleanDisplayName) {
       toast.error(t("profile.nameRequired"));
-      return;
-    }
-    if (uploading) {
-      toast.error(t("profile.waitForUpload"));
       return;
     }
 
@@ -314,33 +295,38 @@ function EditProfileDialog() {
     try {
       const auth = getFirebaseAuth();
       const firebaseUser = auth?.currentUser;
-      const profileUpdates: Parameters<typeof updateUserProfileFields>[1] = {};
       const originalNames = splitDisplayName(user.name);
-      const originalPhotoUrl = user.avatarUrl ?? "";
+      const payload: Parameters<typeof updateMyProfile>[0] = {};
+
+      if (cleanDisplayName !== user.name) payload.displayName = cleanDisplayName;
+      if (cleanFirstName !== originalNames.firstName) payload.firstName = cleanFirstName || null;
+      if (cleanMiddleName !== originalNames.middleName)
+        payload.middleName = cleanMiddleName || null;
+      if (cleanLastName !== originalNames.lastName) payload.lastName = cleanLastName || null;
+      if (profilePhoto) payload.profilePhoto = profilePhoto;
+
+      const response =
+        Object.keys(payload).length > 0
+          ? await updateMyProfile(payload)
+          : {
+              displayName: { value: cleanDisplayName, updatedBy: "self" },
+              photoUrl: { value: user.avatarUrl ?? null, updatedBy: null },
+            };
+
+      const savedDisplayName = response.displayName?.value ?? cleanDisplayName;
+      const savedPhotoUrl = response.photoUrl?.value ?? user.avatarUrl ?? null;
 
       if (firebaseUser) {
         await updateProfile(firebaseUser, {
-          displayName: cleanDisplayName,
-          photoURL: cleanPhotoUrl || null,
+          displayName: savedDisplayName,
+          photoURL: savedPhotoUrl,
         });
       }
 
-      if (cleanDisplayName !== user.name) profileUpdates.displayName = cleanDisplayName;
-      if (cleanFirstName !== originalNames.firstName)
-        profileUpdates.firstName = cleanFirstName || null;
-      if (cleanMiddleName !== originalNames.middleName)
-        profileUpdates.middleName = cleanMiddleName || null;
-      if (cleanLastName !== originalNames.lastName) profileUpdates.lastName = cleanLastName || null;
-      if (cleanPhotoUrl !== originalPhotoUrl) profileUpdates.photoUrl = cleanPhotoUrl || null;
-
-      if (Object.keys(profileUpdates).length > 0) {
-        await updateUserProfileFields(user.id, profileUpdates);
-      }
-
       updateUser({
-        name: cleanDisplayName,
-        avatarInitials: initialsFrom(cleanDisplayName),
-        avatarUrl: cleanPhotoUrl || null,
+        name: savedDisplayName,
+        avatarInitials: initialsFrom(savedDisplayName),
+        avatarUrl: savedPhotoUrl,
       });
 
       toast.success(t("profile.updated"));
@@ -379,18 +365,18 @@ function EditProfileDialog() {
               accept="image/*"
               className="hidden"
               onChange={handleAvatarChange}
-              disabled={uploading}
+              disabled={saving}
             />
             <label
               htmlFor={photoInputId}
-              className={uploading ? "cursor-wait rounded-full" : "cursor-pointer rounded-full"}
+              className={saving ? "cursor-wait rounded-full" : "cursor-pointer rounded-full"}
             >
               <div className="relative">
                 <Avatar className="h-24 w-24 text-2xl ring-2 ring-border transition hover:ring-primary">
                   {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
                   <AvatarFallback>{initialsFrom(displayName)}</AvatarFallback>
                 </Avatar>
-                {uploading && (
+                {saving && profilePhoto && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
                     <Loader2 className="h-6 w-6 animate-spin text-white" />
                   </div>
@@ -398,17 +384,20 @@ function EditProfileDialog() {
               </div>
             </label>
             <p className="text-xs text-muted-foreground">
-              {uploading ? t("profile.uploading") : t("profile.clickToChange")}
+              {profilePhoto ? t("profile.photoSelected") : t("profile.clickToChange")}
             </p>
-            {avatarUrl && !uploading && (
+            {profilePhoto && !saving && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 className="h-8 text-xs text-destructive hover:text-destructive"
-                onClick={() => setAvatarUrl("")}
+                onClick={() => {
+                  setAvatarUrl(user.avatarUrl ?? "");
+                  setProfilePhoto(null);
+                }}
               >
-                {t("profile.removePhoto")}
+                {t("actions.cancel")}
               </Button>
             )}
           </div>
@@ -447,7 +436,7 @@ function EditProfileDialog() {
               onChange={(e) => setLastName(e.target.value)}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={uploading || saving}>
+          <Button type="submit" className="w-full" disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t("actions.submit")}
           </Button>

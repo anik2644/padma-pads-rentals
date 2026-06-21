@@ -1,10 +1,25 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, MapPin, Star, Phone, MessageCircle,
-  Heart, Share2, Shield, CheckCircle2, CalendarDays,
-  Users, BedDouble, Maximize2, Waves, Utensils, Dumbbell,
-  PlaneTakeoff, Car, WashingMachine,
+  ArrowLeft,
+  MapPin,
+  Star,
+  Phone,
+  MessageCircle,
+  Heart,
+  Share2,
+  Shield,
+  CheckCircle2,
+  CalendarDays,
+  Users,
+  BedDouble,
+  Maximize2,
+  Waves,
+  Utensils,
+  Dumbbell,
+  PlaneTakeoff,
+  Car,
+  WashingMachine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +31,14 @@ import { getRecreationalDetail } from "@/lib/mock-data";
 import { formatBDT } from "@/lib/format";
 import { useAuthStore } from "@/store/authStore";
 import { VisitRequestPanel } from "@/components/property/VisitRequestPanel";
+import { PropertyMediaGallery } from "@/components/property/PropertyMediaGallery";
 import { trackPropertyView } from "@/lib/property-view-tracking";
-import { createFavorite, deleteFavorite, listFavorites, notifyFavoritesChanged } from "@/lib/favorites";
+import {
+  createFavorite,
+  deleteFavorite,
+  listFavorites,
+  notifyFavoritesChanged,
+} from "@/lib/favorites";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/recreational/$id")({
@@ -45,11 +66,11 @@ function RecreationalNotFound() {
 
 const FACILITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "Swimming Pool": Waves,
-  "Restaurant": Utensils,
-  "Gym": Dumbbell,
+  Restaurant: Utensils,
+  Gym: Dumbbell,
   "Airport Pickup": PlaneTakeoff,
   "Car Rental": Car,
-  "Laundry": WashingMachine,
+  Laundry: WashingMachine,
 };
 
 function RecreationalDetail() {
@@ -58,7 +79,6 @@ function RecreationalDetail() {
   const user = useAuthStore((s) => s.user);
   const [saved, setSaved] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
-  const [activeImg, setActiveImg] = useState(0);
   const advertisementId = `recreational-${item.id}`;
   const ownerId = `owner-${item.contact.name.toLowerCase().replace(/\W+/g, "-")}`;
 
@@ -110,11 +130,12 @@ function RecreationalDetail() {
         <ArrowLeft className="h-4 w-4" /> {t("detail.backRecreational")}
       </Link>
 
-      {/* Gallery */}
-      <div className="grid gap-3 md:grid-cols-4">
-        <div className="relative aspect-[16/10] overflow-hidden rounded-3xl bg-muted md:col-span-3">
-          <img src={item.gallery[activeImg]} alt={item.name} className="h-full w-full object-cover" />
-          <div className="absolute right-3 top-3 flex gap-2">
+      <PropertyMediaGallery
+        photos={item.gallery}
+        videos={item.videos}
+        title={item.name}
+        actions={
+          <>
             <button
               onClick={toggleFavorite}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-background/90 backdrop-blur transition hover:scale-105"
@@ -129,43 +150,35 @@ function RecreationalDetail() {
             >
               <Share2 className="h-4 w-4" />
             </button>
-          </div>
-          <div className="absolute left-3 bottom-3 flex items-center gap-2">
+          </>
+        }
+        photoOverlay={
+          <div className="flex items-center gap-2">
             <Badge className="gap-1 border-0 bg-background/90 text-foreground backdrop-blur">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> {item.rating}
             </Badge>
           </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
-          {item.gallery.slice(0, 4).map((g: string, i: number) => (
-            <button
-              key={i}
-              onClick={() => setActiveImg(i)}
-              className={cn(
-                "aspect-[4/3] overflow-hidden rounded-2xl ring-2 transition",
-                i === activeImg ? "ring-primary" : "ring-transparent hover:ring-border",
-              )}
-            >
-              <img src={g} alt="" className="h-full w-full object-cover" />
-            </button>
-          ))}
-        </div>
-      </div>
+        }
+      />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Main content */}
         <div className="space-y-6 lg:col-span-2">
           {/* Title */}
           <div>
-            <Badge className="mb-2 capitalize">{t(`recreational.types.${item.type}`, { defaultValue: item.type })}</Badge>
+            <Badge className="mb-2 capitalize">
+              {t(`recreational.types.${item.type}`, { defaultValue: item.type })}
+            </Badge>
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{item.name}</h1>
             <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="h-4 w-4" /> {item.city}, {item.division}
             </p>
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
-              {t("recreational.fields.checkIn")}: <span className="font-medium text-foreground">{item.checkIn}</span>
-              &nbsp;·&nbsp; {t("recreational.fields.checkOut")}: <span className="font-medium text-foreground">{item.checkOut}</span>
+              {t("recreational.fields.checkIn")}:{" "}
+              <span className="font-medium text-foreground">{item.checkIn}</span>
+              &nbsp;·&nbsp; {t("recreational.fields.checkOut")}:{" "}
+              <span className="font-medium text-foreground">{item.checkOut}</span>
             </p>
           </div>
 
@@ -213,35 +226,56 @@ function RecreationalDetail() {
           <section>
             <h2 className="mb-3 text-lg font-semibold">{t("detail.roomTypes")}</h2>
             <div className="space-y-3">
-              {item.rooms.map((room: { type: string; available: number; price: number; occupancy: number; bedType: string; sizeSqft: number }) => (
-                <div
-                  key={room.type}
-                  className="rounded-2xl border border-border bg-card p-4 shadow-card"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold">{room.type}</h3>
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {room.bedType}</span>
-                        <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {t("detail.upToGuests", { count: room.occupancy })}</span>
-                        <span className="flex items-center gap-1"><Maximize2 className="h-3.5 w-3.5" /> {room.sizeSqft} {t("commercial.sizeUnit")}</span>
+              {item.rooms.map(
+                (room: {
+                  type: string;
+                  available: number;
+                  price: number;
+                  occupancy: number;
+                  bedType: string;
+                  sizeSqft: number;
+                }) => (
+                  <div
+                    key={room.type}
+                    className="rounded-2xl border border-border bg-card p-4 shadow-card"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold">{room.type}</h3>
+                        <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <BedDouble className="h-3.5 w-3.5" /> {room.bedType}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5" />{" "}
+                            {t("detail.upToGuests", { count: room.occupancy })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Maximize2 className="h-3.5 w-3.5" /> {room.sizeSqft}{" "}
+                            {t("commercial.sizeUnit")}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs text-success">
+                          {t("detail.roomsAvailable", { count: room.available })}
+                        </p>
                       </div>
-                      <p className="mt-1 text-xs text-success">{t("detail.roomsAvailable", { count: room.available })}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-primary">{formatBDT(room.price)}</p>
-                      <p className="text-xs text-muted-foreground">{t("recreational.perNight")}</p>
-                      <Button
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => toast.success(t("detail.booking", { room: room.type }))}
-                      >
-                        {t("detail.bookNow")}
-                      </Button>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-primary">{formatBDT(room.price)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("recreational.perNight")}
+                        </p>
+                        <Button
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => toast.success(t("detail.booking", { room: room.type }))}
+                        >
+                          {t("detail.bookNow")}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ),
+              )}
             </div>
           </section>
 
@@ -249,11 +283,32 @@ function RecreationalDetail() {
           <section>
             <h2 className="mb-3 text-lg font-semibold">{t("detail.rulesPolicies")}</h2>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p>• {t("detail.petsAllowed")}: <span className="text-foreground font-medium">{item.rules.petsAllowed ? t("actions.yes") : t("actions.no")}</span></p>
-              <p>• {t("detail.smokingAllowed")}: <span className="text-foreground font-medium">{item.rules.smokingAllowed ? t("actions.yes") : t("actions.no")}</span></p>
-              <p>• {t("detail.outsideFood")}: <span className="text-foreground font-medium">{item.rules.outsideFoodAllowed ? t("detail.allowed") : t("detail.notAllowed")}</span></p>
-              <p>• {t("detail.cancellation")}: <span className="text-foreground font-medium">{item.rules.cancellationPolicy}</span></p>
-              <p>• {t("detail.refund")}: <span className="text-foreground font-medium">{item.rules.refundPolicy}</span></p>
+              <p>
+                • {t("detail.petsAllowed")}:{" "}
+                <span className="text-foreground font-medium">
+                  {item.rules.petsAllowed ? t("actions.yes") : t("actions.no")}
+                </span>
+              </p>
+              <p>
+                • {t("detail.smokingAllowed")}:{" "}
+                <span className="text-foreground font-medium">
+                  {item.rules.smokingAllowed ? t("actions.yes") : t("actions.no")}
+                </span>
+              </p>
+              <p>
+                • {t("detail.outsideFood")}:{" "}
+                <span className="text-foreground font-medium">
+                  {item.rules.outsideFoodAllowed ? t("detail.allowed") : t("detail.notAllowed")}
+                </span>
+              </p>
+              <p>
+                • {t("detail.cancellation")}:{" "}
+                <span className="text-foreground font-medium">{item.rules.cancellationPolicy}</span>
+              </p>
+              <p>
+                • {t("detail.refund")}:{" "}
+                <span className="text-foreground font-medium">{item.rules.refundPolicy}</span>
+              </p>
             </div>
           </section>
 
@@ -297,7 +352,10 @@ function RecreationalDetail() {
               </div>
             </div>
             <div className="mt-4 space-y-2">
-              <Button className="w-full gap-2" onClick={() => toast.success(t("detail.proceedBooking"))}>
+              <Button
+                className="w-full gap-2"
+                onClick={() => toast.success(t("detail.proceedBooking"))}
+              >
                 {t("detail.bookNow")}
               </Button>
               <Button

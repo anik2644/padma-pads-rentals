@@ -530,42 +530,6 @@ export async function updateLastLogin(uid: string): Promise<void> {
   }
 }
 
-export async function updateUserPhotoUrl(uid: string, photoUrl: string | null): Promise<void> {
-  const db = getFirebaseDb();
-  if (!db) return;
-  try {
-    await updateDoc(doc(db, USERS, uid), {
-      photoUrl: profileField(photoUrl, "self"),
-      "audit.updatedAt": serverTimestamp(),
-      "audit.updatedBy": "self",
-    });
-  } catch (err) {
-    console.warn("[updateUserPhotoUrl] Firestore update failed:", err);
-  }
-}
-
-export async function updateUserProfileFields(
-  uid: string,
-  fields: Partial<{
-    displayName: string | null;
-    firstName: string | null;
-    middleName: string | null;
-    lastName: string | null;
-    photoUrl: string | null;
-  }>,
-) {
-  const db = getFirebaseDb();
-  if (!db) return;
-  const update: Record<string, unknown> = {
-    "audit.updatedAt": serverTimestamp(),
-    "audit.updatedBy": "self",
-  };
-  for (const [key, value] of Object.entries(fields)) {
-    update[key] = profileField(value ?? null, "self");
-  }
-  await updateDoc(doc(db, USERS, uid), update);
-}
-
 export async function syncProviderProfileFields(
   match: UserDocMatch,
   firebaseUser: User,

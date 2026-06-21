@@ -43,7 +43,8 @@ export interface SearchFilters {
 export interface PropertyListItem {
   id: string;
   advertisementId?: string;
-  type: ResidentialType;
+  useType?: "RESIDENTIAL" | "COMMERCIAL" | "RECREATIONAL";
+  type: string;
   name: string;
   title?: string;
   city?: string;
@@ -131,7 +132,10 @@ interface RawListResponse {
   meta: { page: number; pageSize: number; totalItems: number; totalPages: number };
 }
 
-function rentFor(type: ResidentialType, rd?: RawRentalDetails): { rent: number; label: "perSeat" | "perMonth" } {
+function rentFor(
+  type: ResidentialType,
+  rd?: RawRentalDetails,
+): { rent: number; label: "perSeat" | "perMonth" } {
   if (type === "hostels" || type === "shared-rooms") {
     return { rent: rd?.rentPerSeat ?? rd?.monthlyRent ?? 0, label: "perSeat" };
   }
@@ -153,7 +157,8 @@ function normalize(type: ResidentialType, raw: RawWithAd): PropertyListItem {
     rent,
     rentLabel: label,
     availableFrom: p.rentalDetails?.availableFrom ?? undefined,
-    coverImage: raw.advertisement?.coverImage?.url ?? p.media?.coverImage?.url ?? p.media?.photos?.[0]?.url,
+    coverImage:
+      raw.advertisement?.coverImage?.url ?? p.media?.coverImage?.url ?? p.media?.photos?.[0]?.url,
     targetGroups: p.targetGroup ?? [],
     createdAt: p.audit?.createdAt,
     negotiable: p.rentalDetails?.negotiable,
@@ -259,6 +264,7 @@ export interface PropertyDetail {
   availableFrom?: string;
   advance?: number;
   gallery: string[];
+  videos: string[];
   amenities: string[];
   rules: string[];
   targetGroups: TargetGroup[];
@@ -266,7 +272,13 @@ export interface PropertyDetail {
   bathrooms: number;
   sizeSqft: number;
   floor: number;
-  owner: { name: string; verified: boolean; memberSince: string; phone: string; responseTime: string };
+  owner: {
+    name: string;
+    verified: boolean;
+    memberSince: string;
+    phone: string;
+    responseTime: string;
+  };
 }
 
 function specsToAmenities(specs?: Record<string, unknown>): string[] {
@@ -296,7 +308,8 @@ function rulesToList(rules?: RawRules): string[] {
   if (!rules) return [];
   const out: string[] = [];
   if (rules.petsAllowed != null) out.push(rules.petsAllowed ? "Pets allowed" : "No pets");
-  if (rules.smokingAllowed != null) out.push(rules.smokingAllowed ? "Smoking allowed" : "No smoking");
+  if (rules.smokingAllowed != null)
+    out.push(rules.smokingAllowed ? "Smoking allowed" : "No smoking");
   if (rules.genderRestriction) out.push(`Gender: ${rules.genderRestriction}`);
   return out;
 }
@@ -305,10 +318,9 @@ export async function fetchResidentialDetail(
   type: ResidentialType,
   id: string,
 ): Promise<PropertyDetail | null> {
-  const res = await api<RawListResponse>(
-    `/api/v1/properties/residential/${TYPE_TO_PATH[type]}`,
-    { query: { id } },
-  );
+  const res = await api<RawListResponse>(`/api/v1/properties/residential/${TYPE_TO_PATH[type]}`, {
+    query: { id },
+  });
   const raw = res.items?.[0];
   if (!raw) return null;
   const p = raw.property;
@@ -318,6 +330,7 @@ export async function fetchResidentialDetail(
     raw.advertisement?.coverImage?.url ?? p.media?.coverImage?.url,
     ...(p.media?.photos?.map((ph) => ph.url) ?? []),
   ].filter((x): x is string => !!x);
+  const videos = (p.media?.videos?.map((video) => video.url) ?? []).filter((x): x is string => !!x);
 
   const lat = Number(p.location?.gpsLocation?.lat ?? 23.8103);
   const lng = Number(p.location?.gpsLocation?.lng ?? 90.4125);
@@ -340,7 +353,10 @@ export async function fetchResidentialDetail(
     negotiable: !!p.rentalDetails?.negotiable,
     availableFrom: p.rentalDetails?.availableFrom ?? undefined,
     advance: p.rentalDetails?.advance ?? undefined,
-    gallery: gallery.length ? gallery : ["https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200"],
+    gallery: gallery.length
+      ? gallery
+      : ["https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200"],
+    videos,
     amenities: specsToAmenities(specs),
     rules: rulesToList(p.rules),
     targetGroups: p.targetGroup ?? [],

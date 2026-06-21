@@ -15,15 +15,26 @@ import {
   listFavorites,
   notifyFavoritesChanged,
 } from "@/lib/favorites";
+import { useAuthStore } from "@/store/authStore";
 import { cn } from "@/lib/utils";
 
-const TYPE_COLOR: Record<PropertyListItem["type"], string> = {
+const TYPE_COLOR: Record<string, string> = {
   hostels: "bg-primary/15 text-primary",
   "single-rooms": "bg-secondary/15 text-secondary",
   "shared-rooms": "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   sublets: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
   flats: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
   apartments: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+  offices: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  shops: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400",
+  showrooms: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+  warehouses: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
+  restaurants: "bg-orange-500/15 text-orange-600 dark:text-orange-400",
+  hotels: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+  resorts: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
+  guesthouses: "bg-lime-500/15 text-lime-600 dark:text-lime-400",
+  motels: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400",
+  villas: "bg-pink-500/15 text-pink-600 dark:text-pink-400",
 };
 
 export function PropertyCard({ item }: { item: PropertyListItem }) {
@@ -32,7 +43,14 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
   const [saved, setSaved] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const userId = useAuthStore((s) => s.user?.id);
   const advertisementId = item.advertisementId;
+  const typeLabelKey =
+    item.useType === "COMMERCIAL"
+      ? `commercial.types.${item.type}`
+      : item.useType === "RECREATIONAL"
+        ? `recreational.types.${item.type}`
+        : `residential.types.${item.type}`;
 
   useEffect(() => {
     if (!advertisementId) return;
@@ -40,7 +58,12 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
     async function loadFavoriteState() {
       setFavoriteLoading(true);
       try {
-        const res = await listFavorites({ advertisementId, propertyId: item.id, pageSize: 1 });
+        const res = await listFavorites({
+          userId,
+          advertisementId,
+          propertyId: item.id,
+          pageSize: 1,
+        });
         if (cancelled) return;
         const favorite = res.items[0];
         setFavoriteId(favorite?.id ?? null);
@@ -60,7 +83,7 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
       cancelled = true;
       window.removeEventListener(FAVORITES_CHANGED_EVENT, loadFavoriteState);
     };
-  }, [advertisementId, item.id]);
+  }, [advertisementId, item.id, userId]);
 
   async function toggleFavorite() {
     if (!advertisementId) {
@@ -122,8 +145,8 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
 
         {/* Badges — capped so they never overlap the heart button */}
         <div className="absolute left-3 top-3 flex max-w-[calc(100%-3.5rem)] flex-wrap gap-1.5">
-          <Badge className={cn("border-0 capitalize", TYPE_COLOR[item.type])}>
-            {t(`residential.types.${item.type}`)}
+          <Badge className={cn("border-0 capitalize", TYPE_COLOR[item.type] ?? TYPE_COLOR.flats)}>
+            {t(typeLabelKey, { defaultValue: item.type.replace(/-/g, " ") })}
           </Badge>
           {item.targetGroups.slice(0, 1).map((g) => (
             <Badge key={g} variant="outline" className="border-white/40 bg-black/30 text-white">
@@ -160,20 +183,47 @@ export function PropertyCard({ item }: { item: PropertyListItem }) {
         </div>
 
         <div className="mt-auto flex gap-2 pt-1">
-          <Button asChild size="sm" className="flex-1">
-            <Link
-              to="/residential/$type/$id"
-              params={{ type: item.type, id: item.id }}
-            >
-              {t("common.viewDetails")}
-            </Link>
-          </Button>
-          <Button size="sm" variant="outline" aria-label={t("common.quickCall")} className="shrink-0 px-3">
+          <PropertyDetailsButton item={item} />
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={t("common.quickCall")}
+            className="shrink-0 px-3"
+          >
             <Phone className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
     </article>
+  );
+}
+
+function PropertyDetailsButton({ item }: { item: PropertyListItem }) {
+  const { t } = useTranslation();
+  if (item.useType === "COMMERCIAL") {
+    return (
+      <Button asChild size="sm" className="flex-1">
+        <Link to="/commercial/$id" params={{ id: item.id }}>
+          {t("common.viewDetails")}
+        </Link>
+      </Button>
+    );
+  }
+  if (item.useType === "RECREATIONAL") {
+    return (
+      <Button asChild size="sm" className="flex-1">
+        <Link to="/recreational/$id" params={{ id: item.id }}>
+          {t("common.viewDetails")}
+        </Link>
+      </Button>
+    );
+  }
+  return (
+    <Button asChild size="sm" className="flex-1">
+      <Link to="/residential/$type/$id" params={{ type: item.type, id: item.id }}>
+        {t("common.viewDetails")}
+      </Link>
+    </Button>
   );
 }
 

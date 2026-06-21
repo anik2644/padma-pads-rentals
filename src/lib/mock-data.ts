@@ -16,13 +16,56 @@ const commercialPhoto = (type: string, i: number): string =>
   COMMERCIAL_IMAGE_BY_TYPE[type] ?? COMMERCIAL_ASSET_IMAGES[i % COMMERCIAL_ASSET_IMAGES.length];
 
 const recreationalPhoto = (type: string, i: number): string =>
-  RECREATIONAL_IMAGE_BY_TYPE[type] ?? RECREATIONAL_ASSET_IMAGES[i % RECREATIONAL_ASSET_IMAGES.length];
+  RECREATIONAL_IMAGE_BY_TYPE[type] ??
+  RECREATIONAL_ASSET_IMAGES[i % RECREATIONAL_ASSET_IMAGES.length];
 
-const DHAKA_AREAS = ["Dhanmondi", "Gulshan", "Banani", "Mirpur", "Uttara", "Mohammadpur", "Bashundhara", "Tejgaon", "Wari"];
+const DHAKA_AREAS = [
+  "Dhanmondi",
+  "Gulshan",
+  "Banani",
+  "Mirpur",
+  "Uttara",
+  "Mohammadpur",
+  "Bashundhara",
+  "Tejgaon",
+  "Wari",
+];
 const CTG_AREAS = ["Agrabad", "Halishahar", "Khulshi", "Nasirabad", "GEC Circle"];
 
-const FIRST_NAMES = ["Sunset", "Green", "Royal", "Lakeview", "Bee", "Pine", "Skyline", "Pearl", "Amber", "Maple", "Crystal", "Silver", "Riverside", "Urban", "Cozy", "Hilltop", "Garden", "Aurora"];
-const SECOND = ["Heights", "Residency", "Nest", "Hive", "Villa", "Tower", "Court", "Square", "Apartments", "Hostel", "Lodge", "Suites"];
+const FIRST_NAMES = [
+  "Sunset",
+  "Green",
+  "Royal",
+  "Lakeview",
+  "Bee",
+  "Pine",
+  "Skyline",
+  "Pearl",
+  "Amber",
+  "Maple",
+  "Crystal",
+  "Silver",
+  "Riverside",
+  "Urban",
+  "Cozy",
+  "Hilltop",
+  "Garden",
+  "Aurora",
+];
+const SECOND = [
+  "Heights",
+  "Residency",
+  "Nest",
+  "Hive",
+  "Villa",
+  "Tower",
+  "Court",
+  "Square",
+  "Apartments",
+  "Hostel",
+  "Lodge",
+  "Suites",
+];
 
 function rand(seed: number) {
   let s = seed;
@@ -92,7 +135,13 @@ export const MOCK_RESIDENTIAL: PropertyListItem[] = [
 
 // ===== Commercial =====
 export type CommercialType = "offices" | "shops" | "showrooms" | "warehouses" | "restaurants";
-export const COMMERCIAL_TYPES: CommercialType[] = ["offices", "shops", "showrooms", "warehouses", "restaurants"];
+export const COMMERCIAL_TYPES: CommercialType[] = [
+  "offices",
+  "shops",
+  "showrooms",
+  "warehouses",
+  "restaurants",
+];
 
 export interface CommercialItem {
   id: string;
@@ -139,8 +188,21 @@ export const MOCK_COMMERCIAL: CommercialItem[] = COMMERCIAL_TYPES.flatMap((type,
 });
 
 // ===== Recreational =====
-export type RecreationalType = "hotels" | "resorts" | "guesthouses" | "villas" | "motels" | "cottages";
-export const RECREATIONAL_TYPES: RecreationalType[] = ["hotels", "resorts", "guesthouses", "villas", "motels", "cottages"];
+export type RecreationalType =
+  | "hotels"
+  | "resorts"
+  | "guesthouses"
+  | "villas"
+  | "motels"
+  | "cottages";
+export const RECREATIONAL_TYPES: RecreationalType[] = [
+  "hotels",
+  "resorts",
+  "guesthouses",
+  "villas",
+  "motels",
+  "cottages",
+];
 
 export interface RecreationalItem {
   id: string;
@@ -163,6 +225,11 @@ const REC_PRICE: Record<RecreationalType, [number, number]> = {
   motels: [1500, 5000],
   cottages: [3000, 15000],
 };
+
+const MOCK_PROPERTY_VIDEOS = [
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+  "https://media.w3.org/2010/05/sintel/trailer.mp4",
+];
 
 export const MOCK_RECREATIONAL: RecreationalItem[] = RECREATIONAL_TYPES.flatMap((type, ti) => {
   const r = rand(ti * 53);
@@ -197,11 +264,22 @@ export function getResidentialDetail(type: ResidentialType, id: string) {
     bathrooms: 1 + Math.floor(seedFn() * 2),
     sizeSqft: 350 + Math.floor(seedFn() * 1400),
     floor: 1 + Math.floor(seedFn() * 8),
-    amenities: ["WiFi", "Lift", "Parking", "Generator", "24/7 Water", "Security", "Balcony", "Furnished"].filter(() => seedFn() > 0.35),
+    amenities: [
+      "WiFi",
+      "Lift",
+      "Parking",
+      "Generator",
+      "24/7 Water",
+      "Security",
+      "Balcony",
+      "Furnished",
+    ].filter(() => seedFn() > 0.35),
     rules: ["No smoking inside", "Quiet hours after 10 PM", "Guests with prior notice"],
     location: { lat: 23.7806 + (seedFn() - 0.5) * 0.06, lng: 90.4074 + (seedFn() - 0.5) * 0.06 },
     owner: {
-      name: ["Rahim Uddin", "Karim Hossain", "Nadia Akhter", "Sajid Khan"][Math.floor(seedFn() * 4)],
+      name: ["Rahim Uddin", "Karim Hossain", "Nadia Akhter", "Sajid Khan"][
+        Math.floor(seedFn() * 4)
+      ],
       phone: "+8801712345678",
       verified: true,
       memberSince: "2024",
@@ -217,6 +295,7 @@ export function getCommercialDetail(id: string) {
   return {
     ...item,
     gallery: Array.from({ length: 6 }, (_, i) => commercialPhoto(item.type, i)),
+    videos: MOCK_PROPERTY_VIDEOS,
     description:
       "A prime commercial space in a well-connected business hub with modern infrastructure, 24/7 security, and professional management. Ideal for businesses seeking a prestigious address with full amenities.",
     rooms: 3 + Math.floor(s() * 8),
@@ -239,7 +318,12 @@ export function getCommercialDetail(id: string) {
     },
     location: { lat: 23.7806 + (s() - 0.5) * 0.06, lng: 90.4074 + (s() - 0.5) * 0.06 },
     contact: {
-      name: ["Metro Properties BD", "Prime Commercial Spaces", "Dhaka Business Hub", "Urban Assets Ltd"][Math.floor(s() * 4)],
+      name: [
+        "Metro Properties BD",
+        "Prime Commercial Spaces",
+        "Dhaka Business Hub",
+        "Urban Assets Ltd",
+      ][Math.floor(s() * 4)],
       phone: "+8801812345678",
       whatsapp: "+8801812345678",
       email: "info@primespaces.com.bd",
@@ -258,12 +342,24 @@ export function getRecreationalDetail(id: string) {
   return {
     ...item,
     gallery: Array.from({ length: 6 }, (_, i) => recreationalPhoto(item.type, i)),
+    videos: MOCK_PROPERTY_VIDEOS,
     description:
       "A stunning property offering premium hospitality in a breathtaking natural setting. Every corner is thoughtfully designed to deliver an unforgettable stay — from elegantly furnished rooms to world-class facilities.",
     checkIn: "12:00 PM",
     checkOut: "11:00 AM",
-    facilities: ["Swimming Pool", "Restaurant", "Conference Hall", "Gym", "Garden", "Parking", "BBQ Area", "Beach Access"].filter(() => s() > 0.45),
-    services: ["Room Service", "Laundry", "Tour Assistance", "Airport Pickup", "Car Rental"].filter(() => s() > 0.5),
+    facilities: [
+      "Swimming Pool",
+      "Restaurant",
+      "Conference Hall",
+      "Gym",
+      "Garden",
+      "Parking",
+      "BBQ Area",
+      "Beach Access",
+    ].filter(() => s() > 0.45),
+    services: ["Room Service", "Laundry", "Tour Assistance", "Airport Pickup", "Car Rental"].filter(
+      () => s() > 0.5,
+    ),
     rooms: [
       {
         type: "Standard Room",
@@ -299,7 +395,9 @@ export function getRecreationalDetail(id: string) {
     },
     location: { lat: 21.4272 + (s() - 0.5) * 0.4, lng: 92.0058 + (s() - 0.5) * 0.4 },
     contact: {
-      name: ["Scenic Stays BD", "Premier Hotels Group", "Hospitality Holdings Ltd"][Math.floor(s() * 3)],
+      name: ["Scenic Stays BD", "Premier Hotels Group", "Hospitality Holdings Ltd"][
+        Math.floor(s() * 3)
+      ],
       phone: "+8801912345678",
       whatsapp: "+8801912345678",
       email: "bookings@scenicstays.com.bd",
@@ -343,8 +441,32 @@ export const MOCK_MESSAGES = [
 ];
 
 export const MOCK_NOTIFICATIONS = [
-  { id: "n1", title: "New listing matches your search", body: "3 new flats in Dhanmondi under ৳30,000", time: "10m", unread: true },
-  { id: "n2", title: "Rahim replied to your enquiry", body: "View the message in your inbox", time: "1h", unread: true },
-  { id: "n3", title: "Price dropped on saved property", body: "Pearl Apartments — now ৳35,000/month", time: "3h", unread: false },
-  { id: "n4", title: "Your account is verified", body: "You can now contact owners directly", time: "2d", unread: false },
+  {
+    id: "n1",
+    title: "New listing matches your search",
+    body: "3 new flats in Dhanmondi under ৳30,000",
+    time: "10m",
+    unread: true,
+  },
+  {
+    id: "n2",
+    title: "Rahim replied to your enquiry",
+    body: "View the message in your inbox",
+    time: "1h",
+    unread: true,
+  },
+  {
+    id: "n3",
+    title: "Price dropped on saved property",
+    body: "Pearl Apartments — now ৳35,000/month",
+    time: "3h",
+    unread: false,
+  },
+  {
+    id: "n4",
+    title: "Your account is verified",
+    body: "You can now contact owners directly",
+    time: "2d",
+    unread: false,
+  },
 ];
