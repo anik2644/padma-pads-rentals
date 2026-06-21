@@ -48,9 +48,11 @@ function Hero() {
     <section className="relative min-h-[85vh] overflow-hidden">
       {/* Background image — first in DOM so it sits beneath overlay and content */}
       <img
-        src="/assets/images/img.png"
+        src="/assets/images/img.webp"
         alt=""
         aria-hidden
+        fetchPriority="high"
+        decoding="async"
         className="absolute inset-0 h-full w-full object-cover object-[center_22%]"
       />
       {/* Semi-transparent overlay for text legibility */}
@@ -188,10 +190,7 @@ function Categories() {
 
 function Featured() {
   const { t } = useTranslation();
-  const types = useMemo(
-    () => ["hostels", "single-rooms", "flats", "apartments"] as const,
-    [],
-  );
+  const types = useMemo(() => ["hostels", "single-rooms", "flats", "apartments"] as const, []);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["featured-residential"],
     queryFn: () => searchResidential([...types], { page: 1, pageSize: 6 }),
