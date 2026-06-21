@@ -1,8 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+  EmailAuthProvider,
   fetchSignInMethodsForEmail,
+  reauthenticateWithCredential,
   reload,
   signOut as firebaseSignOut,
+  updatePassword,
   updateProfile,
   verifyBeforeUpdateEmail,
   type User,
@@ -53,7 +56,6 @@ import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { VerificationComponent } from "@/components/auth/VerificationComponent";
 import { getFirebaseAuth } from "@/lib/firebase";
 import {
   appendAttachedEmail,
@@ -63,7 +65,7 @@ import {
   normalizeEmail,
   normalizePhone,
   resolveStoreUser,
-  updateUserPhotoUrl,
+  updateUserProfileFields,
 } from "@/lib/firestore-user";
 import { uploadProfilePhoto } from "@/lib/file-upload";
 import { mockAuth } from "@/lib/mock-auth";
@@ -247,17 +249,21 @@ function EditProfileDialog() {
   const updateUser = useAuthStore((s) => s.updateUser);
   const photoInputId = useId();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(user.name);
-  const [phone, setPhone] = useState(user.phone ?? "");
-  const [city, setCity] = useState(user.city);
+  const initialNames = splitDisplayName(user.name);
+  const [displayName, setDisplayName] = useState(user.name);
+  const [firstName, setFirstName] = useState(initialNames.firstName);
+  const [middleName, setMiddleName] = useState(initialNames.middleName);
+  const [lastName, setLastName] = useState(initialNames.lastName);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   function reset() {
-    setName(user.name);
-    setPhone(user.phone ?? "");
-    setCity(user.city);
+    const names = splitDisplayName(user.name);
+    setDisplayName(user.name);
+    setFirstName(names.firstName);
+    setMiddleName(names.middleName);
+    setLastName(names.lastName);
     setAvatarUrl(user.avatarUrl ?? "");
     setUploading(false);
   }
@@ -290,7 +296,12 @@ function EditProfileDialog() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) {
+    const cleanDisplayName = displayName.trim();
+    const cleanFirstName = firstName.trim();
+    const cleanMiddleName = middleName.trim();
+    const cleanLastName = lastName.trim();
+    const cleanPhotoUrl = avatarUrl.trim();
+    if (!cleanDisplayName) {
       toast.error(t("profile.nameRequired"));
       return;
     }
@@ -303,25 +314,33 @@ function EditProfileDialog() {
     try {
       const auth = getFirebaseAuth();
       const firebaseUser = auth?.currentUser;
+      const profileUpdates: Parameters<typeof updateUserProfileFields>[1] = {};
+      const originalNames = splitDisplayName(user.name);
+      const originalPhotoUrl = user.avatarUrl ?? "";
 
-      // Update Firebase Auth profile (displayName + photoURL)
       if (firebaseUser) {
         await updateProfile(firebaseUser, {
-          displayName: name.trim(),
-          photoURL: avatarUrl || null,
+          displayName: cleanDisplayName,
+          photoURL: cleanPhotoUrl || null,
         });
       }
 
-      // Persist photoUrl to Firestore (non-blocking on error)
-      updateUserPhotoUrl(user.id, avatarUrl || null).catch(() => {});
+      if (cleanDisplayName !== user.name) profileUpdates.displayName = cleanDisplayName;
+      if (cleanFirstName !== originalNames.firstName)
+        profileUpdates.firstName = cleanFirstName || null;
+      if (cleanMiddleName !== originalNames.middleName)
+        profileUpdates.middleName = cleanMiddleName || null;
+      if (cleanLastName !== originalNames.lastName) profileUpdates.lastName = cleanLastName || null;
+      if (cleanPhotoUrl !== originalPhotoUrl) profileUpdates.photoUrl = cleanPhotoUrl || null;
 
-      // Update local store
+      if (Object.keys(profileUpdates).length > 0) {
+        await updateUserProfileFields(user.id, profileUpdates);
+      }
+
       updateUser({
-        name: name.trim(),
-        phone: phone.trim() || null,
-        city: city.trim() || "Dhaka",
-        avatarInitials: initialsFrom(name),
-        avatarUrl: avatarUrl || null,
+        name: cleanDisplayName,
+        avatarInitials: initialsFrom(cleanDisplayName),
+        avatarUrl: cleanPhotoUrl || null,
       });
 
       toast.success(t("profile.updated"));
@@ -368,8 +387,8 @@ function EditProfileDialog() {
             >
               <div className="relative">
                 <Avatar className="h-24 w-24 text-2xl ring-2 ring-border transition hover:ring-primary">
-                  {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
-                  <AvatarFallback>{initialsFrom(name)}</AvatarFallback>
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                  <AvatarFallback>{initialsFrom(displayName)}</AvatarFallback>
                 </Avatar>
                 {uploading && (
                   <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
@@ -395,22 +414,38 @@ function EditProfileDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="profile-name">{t("profile.fullName")}</Label>
-            <Input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="profile-email">{t("profile.email")}</Label>
-            <Input id="profile-email" value={user.email ?? ""} disabled />
+            <Label htmlFor="profile-display-name">{t("profile.displayName")}</Label>
+            <Input
+              id="profile-display-name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="profile-phone">{t("profile.phone")}</Label>
-              <Input id="profile-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <Label htmlFor="profile-first-name">{t("profile.firstName")}</Label>
+              <Input
+                id="profile-first-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="profile-city">{t("profile.city")}</Label>
-              <Input id="profile-city" value={city} onChange={(e) => setCity(e.target.value)} />
+              <Label htmlFor="profile-middle-name">{t("profile.middleName")}</Label>
+              <Input
+                id="profile-middle-name"
+                value={middleName}
+                onChange={(e) => setMiddleName(e.target.value)}
+              />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="profile-last-name">{t("profile.lastName")}</Label>
+            <Input
+              id="profile-last-name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
           </div>
           <Button type="submit" className="w-full" disabled={uploading || saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -426,34 +461,43 @@ function ChangePassword() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user)!;
   const [open, setOpen] = useState(false);
-  const [stage, setStage] = useState<"choose" | "verify" | "form">("choose");
-  const [method, setMethod] = useState<"email" | "phone">(user.email ? "email" : "phone");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function reset() {
-    setStage("choose");
+    setCurrentPassword("");
     setPw("");
     setPw2("");
+    setError(null);
   }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (!currentPassword) return setError("Enter your current password.");
     if (pw.length < 6) return toast.error(t("profile.passwordMin"));
     if (pw !== pw2) return toast.error(t("profile.passwordMismatch"));
     setSaving(true);
+    setError(null);
     try {
-      await mockAuth.resetPassword(pw);
+      const auth = getFirebaseAuth();
+      const firebaseUser = auth?.currentUser;
+      const email = firebaseUser?.email ?? user.email;
+      if (!firebaseUser || !email) throw new Error("You must be logged in with an email account.");
+      const credential = EmailAuthProvider.credential(email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await updatePassword(firebaseUser, pw);
       toast.success(t("profile.passwordUpdated"));
       setOpen(false);
       reset();
+    } catch (err) {
+      setError((err as Error).message || "Could not update password.");
     } finally {
       setSaving(false);
     }
   }
-
-  const target = method === "email" ? (user.email ?? "") : (user.phone ?? "");
 
   return (
     <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
@@ -483,73 +527,44 @@ function ChangePassword() {
             <DialogTitle>{t("profile.changePassword")}</DialogTitle>
           </DialogHeader>
 
-          {stage === "choose" && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">{t("profile.chooseVerification")}</p>
-              <div className="grid gap-2">
-                {user.email && (
-                  <Button
-                    variant="outline"
-                    className="h-11 justify-start gap-2"
-                    onClick={() => {
-                      setMethod("email");
-                      setStage("verify");
-                    }}
-                  >
-                    <Mail className="h-4 w-4" /> {t("profile.sendCodeTo", { target: user.email })}
-                  </Button>
-                )}
-                {user.phone && (
-                  <Button
-                    variant="outline"
-                    className="h-11 justify-start gap-2"
-                    onClick={() => {
-                      setMethod("phone");
-                      setStage("verify");
-                    }}
-                  >
-                    <Phone className="h-4 w-4" /> {t("profile.sendCodeTo", { target: user.phone })}
-                  </Button>
-                )}
-              </div>
+          <form onSubmit={save} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>{t("profile.currentPassword")}</Label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="h-11"
+              />
             </div>
-          )}
-
-          {stage === "verify" && (
-            <VerificationComponent
-              type={method}
-              target={target}
-              onVerified={() => setStage("form")}
-              onCancel={() => setStage("choose")}
-            />
-          )}
-
-          {stage === "form" && (
-            <form onSubmit={save} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>{t("profile.newPassword")}</Label>
-                <Input
-                  type="password"
-                  value={pw}
-                  onChange={(e) => setPw(e.target.value)}
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t("profile.confirmPassword")}</Label>
-                <Input
-                  type="password"
-                  value={pw2}
-                  onChange={(e) => setPw2(e.target.value)}
-                  className="h-11"
-                />
-              </div>
-              <Button type="submit" className="h-11 w-full" disabled={saving}>
-                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                {t("profile.updatePassword")}
-              </Button>
-            </form>
-          )}
+            <div className="space-y-1.5">
+              <Label>{t("profile.newPassword")}</Label>
+              <Input
+                type="password"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                className="h-11"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("profile.confirmPassword")}</Label>
+              <Input
+                type="password"
+                value={pw2}
+                onChange={(e) => setPw2(e.target.value)}
+                className="h-11"
+              />
+            </div>
+            {error && (
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <Button type="submit" className="h-11 w-full" disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {t("profile.updatePassword")}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
@@ -1171,4 +1186,13 @@ function Row({
 function initialsFrom(name: string) {
   const parts = name.trim().split(/\s+/);
   return `${parts[0]?.[0] ?? "H"}${parts[1]?.[0] ?? "B"}`.toUpperCase();
+}
+
+function splitDisplayName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] ?? "",
+    middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : "",
+    lastName: parts.length > 1 ? parts[parts.length - 1] : "",
+  };
 }

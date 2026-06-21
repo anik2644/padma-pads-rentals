@@ -39,6 +39,7 @@ import {
   normalizeEmail,
   providerLabel,
   resolveStoreUser,
+  syncProviderProfileFields,
   type SocialEmailProvider,
 } from "@/lib/firestore-user";
 
@@ -177,6 +178,7 @@ function SignupPage() {
           if (code !== "auth/provider-already-linked" && code !== "auth/credential-already-in-use")
             throw err;
         });
+        await syncProviderProfileFields(existing, credential.user, pendingLink.provider);
         await appendEmailProvider(existing, pendingLink.email, "self");
         sessionStorage.removeItem(PENDING_LINK_EMAIL_KEY);
         setPendingLink(null);
@@ -192,6 +194,7 @@ function SignupPage() {
       if (!existing) {
         await createSocialUserDoc(credential.user, provider);
       } else {
+        await syncProviderProfileFields(existing, credential.user, provider);
         await appendEmailProvider(existing, providerEmail, provider);
       }
       await finishAuth(

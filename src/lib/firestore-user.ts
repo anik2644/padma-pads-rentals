@@ -24,7 +24,8 @@ export type SocialEmailProvider = "google" | "facebook" | "apple";
 
 const USERS = "users";
 
-type ProfileField<T> = { value: T | null; updatedBy: EmailProvider | "self" | null };
+type ProfileUpdater = "self" | SocialEmailProvider | (string & {});
+type ProfileField<T> = { value: T | null; updatedBy: ProfileUpdater | null };
 
 export interface AttachedEmail {
   email: string;
@@ -101,11 +102,31 @@ function profileValue<T>(field: ProfileField<T> | T | null | undefined): T | nul
   return field as T;
 }
 
-function profileField<T>(
-  value: T | null,
-  updatedBy: EmailProvider | "self" | null,
-): ProfileField<T> {
+function profileField<T>(value: T | null, updatedBy: ProfileUpdater | null): ProfileField<T> {
   return { value, updatedBy: value ? updatedBy : null };
+}
+
+function profileFieldCanUpdate(
+  existing: ProfileField<string> | string | null | undefined,
+  incomingValue: string | null,
+  incomingSource: ProfileUpdater,
+) {
+  if (incomingSource !== "self" && incomingValue == null) return false;
+  if (existing && typeof existing === "object" && "updatedBy" in existing) {
+    return !(existing.updatedBy === "self" && incomingSource !== "self");
+  }
+  return true;
+}
+
+function appendProfileFieldUpdate(
+  update: Record<string, unknown>,
+  existing: FirestoreUser,
+  key: "displayName" | "firstName" | "middleName" | "lastName" | "photoUrl",
+  incomingValue: string | null,
+  incomingSource: ProfileUpdater,
+) {
+  if (!profileFieldCanUpdate(existing[key], incomingValue, incomingSource)) return;
+  update[key] = profileField(incomingValue, incomingSource);
 }
 
 function splitName(displayName: string | null) {
@@ -543,6 +564,29 @@ export async function updateUserProfileFields(
     update[key] = profileField(value ?? null, "self");
   }
   await updateDoc(doc(db, USERS, uid), update);
+}
+
+export async function syncProviderProfileFields(
+  match: UserDocMatch,
+  firebaseUser: User,
+  provider: ProfileUpdater,
+) {
+  const displayName = firebaseUser.displayName ?? null;
+  const names = splitName(displayName);
+  const update: Record<string, unknown> = {};
+
+  appendProfileFieldUpdate(update, match.data, "displayName", displayName, provider);
+  appendProfileFieldUpdate(update, match.data, "firstName", names.firstName, provider);
+  appendProfileFieldUpdate(update, match.data, "middleName", names.middleName, provider);
+  appendProfileFieldUpdate(update, match.data, "lastName", names.lastName, provider);
+  appendProfileFieldUpdate(update, match.data, "photoUrl", firebaseUser.photoURL ?? null, provider);
+
+  if (Object.keys(update).length === 0) return;
+  await updateDoc(match.ref, {
+    ...update,
+    "audit.updatedAt": serverTimestamp(),
+    "audit.updatedBy": provider,
+  });
 }
 
 export async function resolveStoreUser(

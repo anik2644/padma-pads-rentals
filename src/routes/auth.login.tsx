@@ -32,6 +32,7 @@ import {
   primarySelfEmailForPhoneLogin,
   providerLabel,
   resolveStoreUser,
+  syncProviderProfileFields,
   type SocialEmailProvider,
 } from "@/lib/firestore-user";
 
@@ -165,6 +166,7 @@ function LoginPage() {
       if (!existing) {
         await createSocialUserDoc(credential.user, provider);
       } else {
+        await syncProviderProfileFields(existing, credential.user, provider);
         await appendEmailProvider(existing, email, provider);
       }
       await finishAuth(credential.user);
